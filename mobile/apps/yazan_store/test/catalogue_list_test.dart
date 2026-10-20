@@ -76,6 +76,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Beta ring'));
     await tester.pumpAndSettle();
+    // The square image fills the test screen; the stock line sits below it.
+    await tester.scrollUntilVisible(find.text('Sold'), 200);
     expect(find.text('Sold'), findsOneWidget);
     expect(find.text('Beta ring'), findsWidgets);
     expect(find.byType(BackButton), findsOneWidget);

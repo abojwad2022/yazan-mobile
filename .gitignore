@@ -1,0 +1,13 @@
+mobile/**/build/
+.dart_tool/
+.packages
+pubspec.lock
+mobile/apps/*/android/
+mobile/apps/*/ios/
+mobile/apps/*/lib/l10n/app_localizations*.dart
+*.jks
+*.keystore
+key.properties
+local.properties
+google-services.json
+GoogleService-Info.plist

@@ -1,0 +1,12 @@
+name: yazan_api_client
+description: Dio client for the YAZAN yazan-mobile/v1 contract.
+publish_to: none
+resolution: workspace
+environment:
+  sdk: ^3.6.0
+dependencies:
+  dio: ^5.7.0
+  yazan_domain:
+dev_dependencies:
+  test: ^1.25.0
+  lints: ^5.0.0

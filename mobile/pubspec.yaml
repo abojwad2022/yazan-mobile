@@ -1,0 +1,37 @@
+name: yazan_mobile_workspace
+publish_to: none
+environment:
+  sdk: ^3.6.0
+workspace:
+  - packages/domain
+  - packages/api_client
+  - packages/design_system
+  - packages/offline_sync
+  - apps/yazan_store
+  - apps/yazan_admin
+dev_dependencies:
+  melos: ^7.0.0
+melos:
+  scripts:
+    analyze:
+      run: dart analyze --fatal-infos .
+      exec:
+        concurrency: 1
+      packageFilters:
+        ignore: [yazan_store, yazan_admin]
+    test:
+      run: dart test
+      exec:
+        concurrency: 1
+      packageFilters:
+        flutter: false
+        ignore: [yazan_store, yazan_admin]
+        dirExists: test
+    test:flutter:
+      run: flutter test
+      exec:
+        concurrency: 1
+      packageFilters:
+        flutter: true
+        ignore: [yazan_store, yazan_admin]
+        dirExists: test

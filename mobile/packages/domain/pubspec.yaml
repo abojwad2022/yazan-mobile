@@ -1,0 +1,9 @@
+name: yazan_domain
+description: Shared pure-Dart models for the YAZAN apps.
+publish_to: none
+resolution: workspace
+environment:
+  sdk: ^3.6.0
+dev_dependencies:
+  test: ^1.25.0
+  lints: ^5.0.0

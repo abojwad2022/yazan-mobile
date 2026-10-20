@@ -1,0 +1,14 @@
+{
+  "@@locale": "en",
+  "appTitle": "YAZAN",
+  "signIn": "Sign in",
+  "email": "Email or username",
+  "password": "Password",
+  "code": "Authentication code",
+  "verify": "Verify",
+  "signOut": "Sign out",
+  "welcome": "Welcome",
+  "signInFailed": "The details are not right. Please try again.",
+  "tooManyAttempts": "Too many attempts. Please wait and try again.",
+  "genericError": "Something went wrong. Check your connection and try again."
+}

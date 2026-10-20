@@ -1,0 +1,14 @@
+name: yazan_design_system
+description: YAZAN colours, theme and RTL-safe widgets shared by both apps.
+publish_to: none
+resolution: workspace
+environment:
+  sdk: ^3.6.0
+  flutter: ">=3.27.0"
+dependencies:
+  flutter:
+    sdk: flutter
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0

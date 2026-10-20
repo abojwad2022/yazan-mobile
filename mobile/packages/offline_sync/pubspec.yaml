@@ -1,0 +1,11 @@
+name: yazan_offline_sync
+description: Outbox, backoff and delta-pull engine. Storage is behind an interface; the apps plug in encrypted SQLite.
+publish_to: none
+resolution: workspace
+environment:
+  sdk: ^3.6.0
+dependencies:
+  yazan_domain:
+dev_dependencies:
+  test: ^1.25.0
+  lints: ^5.0.0

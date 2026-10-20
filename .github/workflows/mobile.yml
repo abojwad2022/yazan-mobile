@@ -38,15 +38,15 @@ jobs:
         working-directory: mobile
         run: |
           dart pub global activate melos
-          melos bootstrap
+          bash tools/ci_run.sh bootstrap melos bootstrap
       - name: Analyze
         working-directory: mobile
-        run: melos run analyze
+        run: bash tools/ci_run.sh analyze melos run analyze
       - name: Test
         working-directory: mobile
         run: |
-          melos run test
-          melos run test:flutter
+          bash tools/ci_run.sh test melos run test
+          bash tools/ci_run.sh test-flutter melos run test:flutter
 
   android:
     name: ${{ matrix.app }} / Android
@@ -72,20 +72,20 @@ jobs:
         working-directory: mobile
         run: |
           dart pub global activate melos
-          melos bootstrap
+          bash tools/ci_run.sh bootstrap melos bootstrap
       - name: Generate platform folders and localisations
         working-directory: mobile/apps/${{ matrix.app }}
         run: |
-          bash ../../tools/scaffold_platforms.sh ${{ matrix.short }} ${{ matrix.app }}
-          flutter gen-l10n
+          bash ../../tools/ci_run.sh scaffold bash ../../tools/scaffold_platforms.sh ${{ matrix.short }} ${{ matrix.app }}
+          bash ../../tools/ci_run.sh gen-l10n flutter gen-l10n
       - name: Analyze and test the app
         working-directory: mobile/apps/${{ matrix.app }}
         run: |
-          flutter analyze
-          flutter test
+          bash ../../tools/ci_run.sh app-analyze flutter analyze
+          bash ../../tools/ci_run.sh app-test flutter test
       - name: Build debug APK
         working-directory: mobile/apps/${{ matrix.app }}
-        run: flutter build apk --debug --dart-define=YAZAN_ENV=ci
+        run: bash ../../tools/ci_run.sh apk flutter build apk --debug --dart-define=YAZAN_ENV=ci
       - name: Check the APK carries no server secrets
         run: |
           set -e
@@ -120,15 +120,15 @@ jobs:
         working-directory: mobile
         run: |
           dart pub global activate melos
-          melos bootstrap
+          bash tools/ci_run.sh bootstrap melos bootstrap
       - name: Generate platform folders and localisations
         working-directory: mobile/apps/${{ matrix.app }}
         run: |
-          bash ../../tools/scaffold_platforms.sh ${{ matrix.short }} ${{ matrix.app }}
-          flutter gen-l10n
+          bash ../../tools/ci_run.sh scaffold bash ../../tools/scaffold_platforms.sh ${{ matrix.short }} ${{ matrix.app }}
+          bash ../../tools/ci_run.sh gen-l10n flutter gen-l10n
       - name: Build for the simulator (no code signing)
         working-directory: mobile/apps/${{ matrix.app }}
-        run: flutter build ios --simulator --debug --no-codesign --dart-define=YAZAN_ENV=ci
+        run: bash ../../tools/ci_run.sh ios flutter build ios --simulator --debug --no-codesign --dart-define=YAZAN_ENV=ci
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.app }}-ios-simulator-app

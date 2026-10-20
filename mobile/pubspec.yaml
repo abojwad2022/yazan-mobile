@@ -7,6 +7,7 @@ workspace:
   - packages/api_client
   - packages/design_system
   - packages/offline_sync
+  - packages/yazan_storage
   - apps/yazan_store
   - apps/yazan_admin
 dev_dependencies:

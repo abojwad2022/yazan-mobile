@@ -1,0 +1,17 @@
+name: yazan_storage
+description: SQLCipher + Keystore/Keychain adapters that give offline_sync a durable, encrypted database.
+publish_to: none
+resolution: workspace
+environment:
+  sdk: ^3.6.0
+  flutter: ">=3.27.0"
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_secure_storage: ^9.2.2
+  sqflite_sqlcipher: ^3.1.0
+  yazan_offline_sync:
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0

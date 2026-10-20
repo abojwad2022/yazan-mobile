@@ -22,6 +22,7 @@ class OutboxOp {
     required this.path,
     required this.idempotencyKey,
     this.body,
+    this.entity,
     this.baseVersion,
     this.state = OpState.pending,
     this.attempts = 0,
@@ -40,7 +41,13 @@ class OutboxOp {
 
   /// Fixed when the op is created and reused on EVERY retry: that is what makes a replay execute once.
   final String idempotencyKey;
+
+  /// Field-level patch (only the fields the person changed), or the append-only payload of a note.
   final Map<String, dynamic>? body;
+
+  /// The record this op targets, e.g. `order:5` or `product:12`. Informational: it lets the sync
+  /// centre group and label ops without parsing [path].
+  final String? entity;
 
   /// Version token the user last saw (sent as If-Match for admin edits).
   final String? baseVersion;

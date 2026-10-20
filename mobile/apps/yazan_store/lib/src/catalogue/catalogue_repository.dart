@@ -33,12 +33,15 @@ class CatalogueRepository {
   /// Cached products sorted by name. Only the in-memory store exposes rows directly;
   /// other stores should be wrapped by a store that implements [CatalogueRows].
   Future<List<Product>> products() async {
-    final store = _store;
-    final rows = store is CatalogueRows
-        ? await store.readRows()
-        : store is MemoryFeedStore
-            ? store.rows.values.toList()
-            : <Map<String, dynamic>>[];
+    final Object store = _store;
+    final List<Map<String, dynamic>> rows;
+    if (store is CatalogueRows) {
+      rows = await (store as CatalogueRows).readRows();
+    } else if (store is MemoryFeedStore) {
+      rows = store.rows.values.toList();
+    } else {
+      rows = <Map<String, dynamic>>[];
+    }
     final list = [for (final r in rows) Product.fromRecord(r)];
     list.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
     return list;

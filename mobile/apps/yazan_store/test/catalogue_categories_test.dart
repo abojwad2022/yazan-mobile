@@ -269,6 +269,7 @@ void main() {
     testWidgets('prices show the item currency code', (tester) async {
       final record = simpleRecord()..['currency'] = 'OMR';
       await tester.pumpWidget(page(Product.fromRecord(record)));
+      await tester.scrollUntilVisible(find.text('OMR 120.00'), 200);
       expect(find.text('OMR 120.00'), findsOneWidget);
     });
   });

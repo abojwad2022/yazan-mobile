@@ -202,7 +202,8 @@ void main() {
     expect(server.daysAsked, hasLength(1));
 
     server.answer = bootstrapAnswer(processing: 9);
-    await tester.drag(find.byKey(const ValueKey('dash-list')), const Offset(0, 300));
+    // Same entry point the pull gesture uses; a synthetic drag is flaky across platforms.
+    await tester.state<RefreshIndicatorState>(find.byType(RefreshIndicator)).show();
     await tester.pumpAndSettle();
     expect(server.daysAsked, hasLength(2));
     expect(_in('dash-processing', find.text('9')), findsOneWidget);

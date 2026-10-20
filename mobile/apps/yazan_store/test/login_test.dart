@@ -6,6 +6,7 @@ import 'package:yazan_store/src/app.dart';
 import 'package:yazan_store/src/cart/store_api.dart';
 import 'package:yazan_store/src/catalogue/catalogue_repository.dart';
 
+import 'fixtures/account_fakes.dart';
 import 'fixtures/store_cart.dart';
 
 YazanApiClient _client(TokenStore t) => YazanApiClient(
@@ -49,9 +50,13 @@ void main() {
       tokens: tokens,
       repository: repo,
       storeApi: StoreApi(cartServer.call),
+      accountApi: FakeAccountApi(),
+      wishlistApi: FakeWishlistApi(),
     ));
     await tester.pumpAndSettle();
-    expect(find.text('Sign out'), findsOneWidget);
+    // Account and favourites are reachable from the app bar; sign-out lives on the account page.
+    expect(find.byTooltip('Account'), findsOneWidget);
+    expect(find.byTooltip('Favourites'), findsOneWidget);
     // The cart loads on sign-in and its count shows on the app bar badge.
     expect(cartServer.requests.single.path, '/wc/store/v1/cart');
     expect(find.byTooltip('Cart'), findsOneWidget);

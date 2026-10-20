@@ -103,7 +103,7 @@ class YazanApiClient {
   Future<void> logout() async {
     try {
       await _send<Map<String, dynamic>>('POST', '$_ns/auth/logout');
-    } on ApiError {
+    } on Exception {
       // The local session is ended either way.
     }
     await tokens.clear();

@@ -6,6 +6,7 @@ import 'src/cart/secure_cart_token_store.dart';
 import 'src/cart/store_api.dart';
 import 'src/config.dart';
 import 'src/secure_token_store.dart';
+import 'src/wishlist/secure_wishlist_mirror.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,5 +22,10 @@ Future<void> main() async {
   // server-side cart (see clientStoreTransport). Once the client exposes a raw request, swap in:
   //   StoreApi(client.raw, tokens: SecureCartTokenStore())
   final storeApi = StoreApi(client.raw, tokens: SecureCartTokenStore());
-  runApp(YazanApp(client: client, tokens: tokens, storeApi: storeApi));
+  runApp(YazanApp(
+    client: client,
+    tokens: tokens,
+    storeApi: storeApi,
+    wishlistMirror: SecureWishlistMirror(),
+  ));
 }

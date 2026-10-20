@@ -4,6 +4,9 @@ import '../../l10n/app_localizations.dart';
 import '../cart/cart_controller.dart';
 import '../cart/cart_page.dart';
 import '../cart/cart_scope.dart';
+import '../wishlist/wishlist_controller.dart';
+import '../wishlist/wishlist_models.dart';
+import '../wishlist/wishlist_scope.dart';
 import 'price_text.dart';
 import 'product.dart';
 
@@ -18,6 +21,7 @@ class ProductPage extends StatelessWidget {
     final theme = Theme.of(context);
     final stock = product.stock;
     final cart = CartScope.maybeOf(context);
+    final wishlist = WishlistScope.maybeOf(context);
     final String stockText;
     if (product.isSoldOut) {
       stockText = l.soldOut;
@@ -27,7 +31,17 @@ class ProductPage extends StatelessWidget {
       stockText = l.inStock;
     }
     return Scaffold(
-      appBar: AppBar(title: Text(product.name)),
+      appBar: AppBar(
+        title: Text(product.name),
+        actions: [
+          if (wishlist != null)
+            IconButton(
+              tooltip: wishlist.contains(product.id) ? l.removeFromFavourites : l.addToFavourites,
+              onPressed: wishlist.busy ? null : () => _toggleSaved(context, wishlist),
+              icon: Icon(wishlist.contains(product.id) ? Icons.favorite : Icons.favorite_border),
+            ),
+        ],
+      ),
       body: ListView(
         children: [
           AspectRatio(
@@ -69,6 +83,30 @@ class ProductPage extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  /// Saves or removes the piece on the server (online only) and says what happened.
+  Future<void> _toggleSaved(BuildContext context, WishlistController wishlist) async {
+    final l = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final wantSaved = !wishlist.contains(product.id);
+    final item = WishlistItem(
+      id: product.id,
+      name: product.name,
+      price: product.price?.toString() ?? '',
+      thumb: product.thumbUrl ?? '',
+    );
+    final ok = await wishlist.setSaved(item, saved: wantSaved);
+    final failure = wishlist.failure;
+    final String message;
+    if (ok) {
+      message = wantSaved ? l.favouriteAdded : l.favouriteRemoved;
+    } else {
+      message = failure == null ? l.genericError : wishlistErrorMessage(l, failure);
+    }
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _add(BuildContext context, CartController cart) async {

@@ -42,6 +42,7 @@ class _LoginPageState extends State<LoginPage> {
       _error = switch (e.action) {
         ErrorAction.backOff => l.tooManyAttempts,
         ErrorAction.genericLoginFailure => l.signInFailed,
+        ErrorAction.hideFeature => l.featureUnavailable,
         _ => l.genericError,
       };
     } catch (_) {
@@ -76,6 +77,8 @@ class _LoginPageState extends State<LoginPage> {
             if (_challenge == null) ...[
               TextField(
                 controller: _user,
+                keyboardType: TextInputType.emailAddress,
+                textInputAction: TextInputAction.next,
                 decoration: InputDecoration(labelText: l.email),
                 autofillHints: const [AutofillHints.username],
               ),
@@ -83,6 +86,10 @@ class _LoginPageState extends State<LoginPage> {
               TextField(
                 controller: _pass,
                 obscureText: true,
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) {
+                  if (!_busy) _submit();
+                },
                 decoration: InputDecoration(labelText: l.password),
                 autofillHints: const [AutofillHints.password],
               ),

@@ -8,4 +8,7 @@ class AppConfig {
   static const baseUrl = String.fromEnvironment('YAZAN_BASE_URL', defaultValue: 'https://yazanus.com');
   static const env = String.fromEnvironment('YAZAN_ENV', defaultValue: 'prod');
   static const scope = AppScope.store;
+
+  /// The store's base country, used at checkout when the server cart has no country yet.
+  static const defaultCountry = 'US';
 }

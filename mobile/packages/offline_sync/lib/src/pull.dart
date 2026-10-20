@@ -3,6 +3,9 @@ import 'package:yazan_domain/yazan_domain.dart';
 /// Local read model for one feed. Implemented over encrypted SQLite in the apps.
 abstract class FeedStore {
   Future<String> readCursor();
+
+  /// Every cached record, so the UI can show the cache after a restart without a network round trip.
+  Future<List<Map<String, dynamic>>> readAll();
   Future<void> apply({
     required List<Map<String, dynamic>> upserts,
     required List<int> deletedIds,
@@ -17,6 +20,9 @@ class MemoryFeedStore implements FeedStore {
 
   @override
   Future<String> readCursor() async => cursor;
+
+  @override
+  Future<List<Map<String, dynamic>>> readAll() async => rows.values.toList();
 
   @override
   Future<void> apply({

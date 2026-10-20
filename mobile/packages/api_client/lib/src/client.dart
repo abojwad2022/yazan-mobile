@@ -124,6 +124,16 @@ class YazanApiClient {
   Future<Map<String, dynamic>> getJson(String path, {Map<String, dynamic>? query}) =>
       _send<Map<String, dynamic>>('GET', path, query: query);
 
+  /// GET that also returns the record's version (the `ETag`, quotes stripped), for a later If-Match.
+  Future<({Map<String, dynamic> body, String? version})> getJsonWithVersion(String path,
+      {Map<String, dynamic>? query}) async {
+    String? etag;
+    final body = await _send<Map<String, dynamic>>('GET', path,
+        query: query, onEtag: (e) => etag = e);
+    final v = etag?.replaceFirst(RegExp(r'^W/'), '').replaceAll('"', '');
+    return (body: body, version: v);
+  }
+
   Future<Map<String, dynamic>> sendJson(
     String method,
     String path, {
@@ -152,6 +162,7 @@ class YazanApiClient {
     Map<String, String>? headers,
     bool auth = true,
     bool retried = false,
+    void Function(String? etag)? onEtag,
   }) async {
     final extra = <String, String>{...?headers};
     final session = auth ? await tokens.read() : null;
@@ -186,6 +197,7 @@ class YazanApiClient {
 
     if (status == 304 && cached != null) {
       meter.notModified++;
+      onEtag?.call(cached.etag);
       return cached.body as T;
     }
 
@@ -200,6 +212,7 @@ class YazanApiClient {
 
     if (status >= 200 && status < 300) {
       final etag = res.headers.value('etag');
+      onEtag?.call(etag);
       if (cacheKey != null && etag != null && decoded is Map<String, dynamic>) {
         _etags[cacheKey] = _Cached(etag, decoded);
       }
@@ -210,7 +223,7 @@ class YazanApiClient {
     if (auth && !retried && error.action == ErrorAction.refreshThenRetry) {
       await _refresh(session!);
       return _send<T>(method, path,
-          data: data, query: query, headers: headers, auth: auth, retried: true);
+          data: data, query: query, headers: headers, auth: auth, retried: true, onEtag: onEtag);
     }
     throw error;
   }

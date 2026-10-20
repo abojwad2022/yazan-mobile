@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:yazan_api_client/yazan_api_client.dart';
 
 import '../l10n/app_localizations.dart';
+import 'cart/cart_page.dart';
+import 'cart/cart_scope.dart';
 import 'catalogue/catalogue_list_page.dart';
 import 'catalogue/catalogue_repository.dart';
 
@@ -30,10 +32,23 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final cart = CartScope.maybeOf(context);
     return Scaffold(
       appBar: AppBar(
         title: Text(l.appTitle),
         actions: [
+          if (cart != null)
+            IconButton(
+              tooltip: l.cart,
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => CartPage(controller: cart)),
+              ),
+              icon: Badge.count(
+                count: cart.count,
+                isLabelVisible: cart.count > 0,
+                child: const Icon(Icons.shopping_bag_outlined),
+              ),
+            ),
           TextButton(
             onPressed: () async {
               await widget.client.logout();

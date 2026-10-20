@@ -30,26 +30,11 @@ class CatalogueRepository {
     _lastSyncedAt = _clock();
   }
 
-  /// Cached products sorted by name. Only the in-memory store exposes rows directly;
-  /// other stores should be wrapped by a store that implements [CatalogueRows].
+  /// Cached products sorted by name, read straight from the store (works after a restart).
   Future<List<Product>> products() async {
-    final Object store = _store;
-    final List<Map<String, dynamic>> rows;
-    if (store is CatalogueRows) {
-      rows = await store.readRows();
-    } else if (store is MemoryFeedStore) {
-      rows = store.rows.values.toList();
-    } else {
-      rows = <Map<String, dynamic>>[];
-    }
+    final rows = await _store.readAll();
     final list = [for (final r in rows) Product.fromRecord(r)];
     list.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
     return list;
   }
-}
-
-/// Optional capability for a [FeedStore] backed by something other than memory
-/// (e.g. encrypted SQLite) so the repository can read its rows.
-abstract interface class CatalogueRows {
-  Future<List<Map<String, dynamic>>> readRows();
 }

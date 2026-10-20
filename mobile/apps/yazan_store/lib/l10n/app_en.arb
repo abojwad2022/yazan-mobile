@@ -25,5 +25,60 @@
   "emptyCatalogue": "No products to show yet. Pull down to refresh.",
   "noImage": "No image",
   "regularPrice": "Regular price",
-  "salePrice": "Sale price"
+  "salePrice": "Sale price",
+  "cart": "Cart",
+  "addToCart": "Add to cart",
+  "addedToCart": "Added to your cart",
+  "viewCart": "View cart",
+  "cartEmpty": "Your cart is empty.",
+  "subtotal": "Subtotal",
+  "shipping": "Shipping",
+  "shippingAtCheckout": "Calculated at checkout",
+  "tax": "Tax",
+  "discount": "Discount",
+  "total": "Total",
+  "checkout": "Checkout",
+  "removeItem": "Remove",
+  "increaseQuantity": "Increase quantity",
+  "decreaseQuantity": "Decrease quantity",
+  "quantityLabel": "Quantity {count}",
+  "@quantityLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "retry": "Try again",
+  "offlineCart": "You are offline. The cart and checkout need an internet connection.",
+  "checkoutOffline": "You are offline. Your details are kept; place the order when you are back online.",
+  "checkoutBusy": "Your order is still being processed. Wait a moment, then try again.",
+  "deliveryDetails": "Delivery details",
+  "firstName": "First name",
+  "lastName": "Last name",
+  "phone": "Phone",
+  "emailAddress": "Email",
+  "addressLine": "Address",
+  "city": "City",
+  "region": "State / region",
+  "postcode": "Postcode / ZIP",
+  "country": "Country",
+  "orderNote": "Order note (optional)",
+  "paymentMethod": "Payment",
+  "cashOnDelivery": "Cash on delivery",
+  "codUnavailable": "Cash on delivery is not available for this order.",
+  "placeOrder": "Place order",
+  "requiredField": "Required",
+  "orderPlacedTitle": "Thank you",
+  "orderPlaced": "Your order has been placed.",
+  "orderNumber": "Order number {number}",
+  "@orderNumber": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "payOnDelivery": "Pay in cash when your order arrives.",
+  "continueShopping": "Continue shopping"
 }

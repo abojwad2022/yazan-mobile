@@ -25,5 +25,60 @@
   "emptyCatalogue": "لا توجد منتجات للعرض بعد. اسحب للأسفل للتحديث.",
   "noImage": "لا توجد صورة",
   "regularPrice": "السعر الأصلي",
-  "salePrice": "سعر التخفيض"
+  "salePrice": "سعر التخفيض",
+  "cart": "السلة",
+  "addToCart": "أضف إلى السلة",
+  "addedToCart": "أُضيف إلى سلتك",
+  "viewCart": "عرض السلة",
+  "cartEmpty": "سلتك فارغة.",
+  "subtotal": "المجموع الفرعي",
+  "shipping": "الشحن",
+  "shippingAtCheckout": "يُحسب عند إتمام الطلب",
+  "tax": "الضريبة",
+  "discount": "الخصم",
+  "total": "الإجمالي",
+  "checkout": "إتمام الطلب",
+  "removeItem": "إزالة",
+  "increaseQuantity": "زيادة الكمية",
+  "decreaseQuantity": "إنقاص الكمية",
+  "quantityLabel": "الكمية {count}",
+  "@quantityLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "retry": "حاول مرة أخرى",
+  "offlineCart": "أنت غير متصل. السلة وإتمام الطلب يحتاجان إلى اتصال بالإنترنت.",
+  "checkoutOffline": "أنت غير متصل. بياناتك محفوظة، أكمل الطلب عند عودة الاتصال.",
+  "checkoutBusy": "طلبك قيد المعالجة. انتظر قليلًا ثم حاول مرة أخرى.",
+  "deliveryDetails": "بيانات التوصيل",
+  "firstName": "الاسم الأول",
+  "lastName": "اسم العائلة",
+  "phone": "رقم الهاتف",
+  "emailAddress": "البريد الإلكتروني",
+  "addressLine": "العنوان",
+  "city": "المدينة",
+  "region": "الولاية / المنطقة",
+  "postcode": "الرمز البريدي",
+  "country": "الدولة",
+  "orderNote": "ملاحظة على الطلب (اختياري)",
+  "paymentMethod": "طريقة الدفع",
+  "cashOnDelivery": "الدفع عند الاستلام",
+  "codUnavailable": "الدفع عند الاستلام غير متاح لهذا الطلب.",
+  "placeOrder": "تأكيد الطلب",
+  "requiredField": "مطلوب",
+  "orderPlacedTitle": "شكرًا لك",
+  "orderPlaced": "تم استلام طلبك.",
+  "orderNumber": "رقم الطلب {number}",
+  "@orderNumber": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "payOnDelivery": "ادفع نقدًا عند وصول طلبك.",
+  "continueShopping": "متابعة التسوق"
 }

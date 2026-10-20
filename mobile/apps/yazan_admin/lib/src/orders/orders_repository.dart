@@ -9,12 +9,15 @@ typedef OrdersFetch = Future<DeltaPage> Function(String cursor);
 
 /// Reads the orders delta feed into a [FeedStore] and exposes it newest first.
 ///
-/// A failed refresh keeps whatever is cached and sets [lastRefreshFailed]; a 403
-/// (`ErrorAction.hideFeature`) sets [noAccess].
+/// On start the list is seeded from [FeedStore.readAll], so the cache shows after a restart
+/// before any network round trip. A failed refresh keeps whatever is cached and sets
+/// [lastRefreshFailed]; a 403 (`ErrorAction.hideFeature`) sets [noAccess].
 class OrdersRepository extends ChangeNotifier {
   OrdersRepository({required OrdersFetch fetch, FeedStore? store})
       : _fetch = fetch,
-        _store = _MirrorStore(store ?? MemoryFeedStore());
+        _store = store ?? MemoryFeedStore() {
+    _ready = _reload();
+  }
 
   /// The production wiring: `GET /yazan-mobile/v1/sync/orders`.
   factory OrdersRepository.forClient(YazanApiClient client, {FeedStore? store, int limit = 50}) {
@@ -30,12 +33,18 @@ class OrdersRepository extends ChangeNotifier {
   }
 
   final OrdersFetch _fetch;
-  final _MirrorStore _store;
+  final FeedStore _store;
+  late final Future<void> _ready;
 
+  List<Map<String, dynamic>> _rows = const [];
   bool _loading = false;
   bool _loaded = false;
   bool _failed = false;
+  bool _disposed = false;
   ApiError? _error;
+
+  /// Completes once the cached rows have been read.
+  Future<void> get ready => _ready;
 
   bool get loading => _loading;
 
@@ -47,7 +56,7 @@ class OrdersRepository extends ChangeNotifier {
 
   /// Newest first (created date, then id).
   List<OrderSummary> get orders {
-    final list = [for (final r in _store.rows.values) OrderSummary.fromJson(r)];
+    final list = [for (final r in _rows) OrderSummary.fromJson(r)];
     list.sort((a, b) {
       final ad = a.created;
       final bd = b.created;
@@ -64,10 +73,20 @@ class OrdersRepository extends ChangeNotifier {
     return list;
   }
 
+  Future<void> _reload() async {
+    try {
+      _rows = await _store.readAll();
+    } on Exception {
+      // An unreadable cache shows as empty; the next pull fills it.
+    }
+    _notify();
+  }
+
   Future<void> refresh() async {
     if (_loading) return;
     _loading = true;
-    notifyListeners();
+    _notify();
+    await _ready;
     try {
       await pullFeed(fetch: _fetch, store: _store);
       _failed = false;
@@ -79,45 +98,21 @@ class OrdersRepository extends ChangeNotifier {
       _failed = true;
       _error = null;
     } finally {
+      // Pages saved before a failure are kept, so read the store back either way.
+      await _reload();
       _loading = false;
       _loaded = true;
-      notifyListeners();
+      _notify();
     }
   }
-}
 
-/// Wraps the injected store and keeps a readable copy of the rows, since [FeedStore]
-/// only exposes the cursor.
-class _MirrorStore implements FeedStore {
-  _MirrorStore(this.inner) {
-    final i = inner;
-    if (i is MemoryFeedStore) rows.addAll(i.rows);
+  void _notify() {
+    if (!_disposed) notifyListeners();
   }
 
-  final FeedStore inner;
-  final Map<int, Map<String, dynamic>> rows = {};
-
   @override
-  Future<String> readCursor() => inner.readCursor();
-
-  @override
-  Future<void> apply({
-    required List<Map<String, dynamic>> upserts,
-    required List<int> deletedIds,
-    required String cursor,
-    required bool initial,
-  }) async {
-    await inner.apply(
-      upserts: upserts,
-      deletedIds: deletedIds,
-      cursor: cursor,
-      initial: initial,
-    );
-    if (initial) rows.clear();
-    for (final r in upserts) {
-      final id = r['id'];
-      if (id is int) rows[id] = r;
-    }
-    deletedIds.forEach(rows.remove);
+  void dispose() {
+    _disposed = true;
+    super.dispose();
   }
 }

@@ -155,4 +155,13 @@ void main() {
     expect(c.meter.sentBytes, greaterThan(0));
     expect(c.meter.receivedBytes, greaterThan(0));
   });
+
+  test('getJsonWithVersion returns the ETag without quotes', () async {
+    final store = MemoryTokenStore();
+    await store.write(Session.fromJson(pair('yzm_1', 'yzr_1')));
+    final a = FakeAdapter((o) => (200, {'id': 5}, {'etag': '"abc123"'}));
+    final r = await make(a, store).getJsonWithVersion('/yazan/v1/orders/5');
+    expect(r.body['id'], 5);
+    expect(r.version, 'abc123');
+  });
 }

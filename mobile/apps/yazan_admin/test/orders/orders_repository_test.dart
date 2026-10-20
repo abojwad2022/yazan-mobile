@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:yazan_admin/src/orders/order_summary.dart';
 import 'package:yazan_admin/src/orders/orders_repository.dart';
 import 'package:yazan_domain/yazan_domain.dart';
+import 'package:yazan_offline_sync/yazan_offline_sync.dart';
 
 Map<String, dynamic> _order(int id, String created, {String name = 'Sara Ali'}) => {
       'id': id,
@@ -89,6 +90,25 @@ void main() {
       await repo.refresh();
       expect(repo.noAccess, isTrue);
       expect(repo.orders, isEmpty);
+    });
+
+    test('shows the cache after a restart before any network call', () async {
+      final store = MemoryFeedStore()
+        ..cursor = 'c9'
+        ..rows[4] = _order(4, '2026-10-04T09:00:00+00:00');
+      var fetched = 0;
+      final repo = OrdersRepository(
+        store: store,
+        fetch: (_) async {
+          fetched++;
+          return _page(const [], cursor: 'c9', initial: false);
+        },
+      );
+      await repo.ready;
+      expect(fetched, 0);
+      expect(repo.orders.map((o) => o.id), [4]);
+      await repo.refresh();
+      expect(repo.orders.map((o) => o.id), [4]);
     });
 
     test('tombstones remove cached orders on the next pull', () async {

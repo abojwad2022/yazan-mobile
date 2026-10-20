@@ -20,15 +20,27 @@
   "noAccessBody": "Your account does not have permission to view orders. Ask the store owner to grant it.",
   "retry": "Try again",
   "orderNumber": "Order #{number}",
-  "@orderNumber": {"placeholders": {"number": {"type": "String"}}},
+  "@orderNumber": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
   "orderItems": "Items: {count}",
-  "@orderItems": {"placeholders": {"count": {"type": "int"}}},
+  "@orderItems": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "guestCustomer": "Guest",
   "orderTotal": "Total",
   "orderLines": "Items",
   "orderPayment": "Payment",
   "orderBilling": "Billing address",
-  "orderStatusNeedsConnection": "Changing the order status needs a connection. Use this screen online to update it.",
+  "orderStatusNeedsConnection": "Status changes need a connection and are never saved offline.",
   "orderDetailFailed": "Could not load the order details.",
   "statusPending": "Pending payment",
   "statusProcessing": "Processing",
@@ -42,5 +54,31 @@
   "conflictMine": "Your version",
   "conflictServer": "Server version",
   "keepServer": "Keep server version",
-  "overwriteMine": "Overwrite with mine"
+  "overwriteMine": "Overwrite with mine",
+  "orderChangeStatus": "Change status",
+  "orderChangeStatusConfirm": "Change this order to “{status}”? WooCommerce may email the customer.",
+  "@orderChangeStatusConfirm": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "orderChangeConfirm": "Change",
+  "cancel": "Cancel",
+  "orderStatusUpdated": "Order status updated.",
+  "needsConnection": "This needs a connection. Nothing was saved on the phone; try again when you are online.",
+  "statusBusy": "The store is still processing this change. Try again in a moment.",
+  "statusNoPermission": "You do not have permission to change this order's status.",
+  "statusChangeFailed": "Could not change the status.",
+  "conflictStatusField": "Status",
+  "orderNotes": "Notes",
+  "notesEmpty": "No notes yet.",
+  "addNoteHint": "Add a private note",
+  "addNote": "Add",
+  "noteWaiting": "Waiting to send",
+  "noteSendFailed": "Could not send",
+  "noteQueued": "Saved on the phone. It will be sent when you are online.",
+  "noteToCustomer": "Sent to customer",
+  "syncNow": "Sync now"
 }

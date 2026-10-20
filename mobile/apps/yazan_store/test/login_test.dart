@@ -3,7 +3,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:yazan_api_client/yazan_api_client.dart';
 import 'package:yazan_domain/yazan_domain.dart';
 import 'package:yazan_store/src/app.dart';
+import 'package:yazan_store/src/cart/store_api.dart';
 import 'package:yazan_store/src/catalogue/catalogue_repository.dart';
+
+import 'fixtures/store_cart.dart';
 
 YazanApiClient _client(TokenStore t) => YazanApiClient(
       baseUrl: 'https://example.test',
@@ -40,8 +43,18 @@ void main() {
       fetch: (cursor) async =>
           const DeltaPage(items: [], cursor: 'c', hasMore: false, initial: true),
     );
-    await tester.pumpWidget(YazanApp(client: _client(tokens), tokens: tokens, repository: repo));
+    final cartServer = FakeTransport((r) => ok(storeCart(images: false)));
+    await tester.pumpWidget(YazanApp(
+      client: _client(tokens),
+      tokens: tokens,
+      repository: repo,
+      storeApi: StoreApi(cartServer.call),
+    ));
     await tester.pumpAndSettle();
     expect(find.text('Sign out'), findsOneWidget);
+    // The cart loads on sign-in and its count shows on the app bar badge.
+    expect(cartServer.requests.single.path, '/wc/store/v1/cart');
+    expect(find.byTooltip('Cart'), findsOneWidget);
+    expect(find.text('3'), findsOneWidget);
   });
 }

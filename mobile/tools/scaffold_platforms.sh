@@ -2,9 +2,9 @@
 # Generates android/ and ios/ for an app (run from the app folder; CI does this before building).
 # The platform folders are generated, not hand-written, because only `flutter create` can write them
 # correctly for the Flutter version in use. Works on Linux and macOS (perl, not GNU-only sed).
-# Usage: scaffold_platforms.sh <short-name> <dart-package>
+# Usage: scaffold_platforms.sh <short-name> <dart-package> <display-name>
 set -euo pipefail
-short="$1"; pkg="$2"
+short="$1"; pkg="$2"; label="${3:-$2}"
 if [ ! -d android ] || [ ! -d ios ]; then
   flutter create --org com.yazanus --project-name "$pkg" --platforms=android,ios .
   rm -f test/widget_test.dart
@@ -18,4 +18,10 @@ m=android/app/src/main/AndroidManifest.xml
 grep -q 'android.permission.INTERNET' "$m" || perl -0pi -e 's/(<manifest[^>]*>)/$1\n    <uses-permission android:name="android.permission.INTERNET"\/>/' "$m"
 grep -n 'applicationId' "$f" | head -2
 grep -n 'PRODUCT_BUNDLE_IDENTIFIER' ios/Runner.xcodeproj/project.pbxproj | head -3
+export LABEL="$label"
+# What the home screen shows under the icon.
+perl -pi -e 's/android:label="[^"]*"/android:label="$ENV{LABEL}"/' android/app/src/main/AndroidManifest.xml
+perl -0pi -e 's/(<key>CFBundleDisplayName<\/key>\s*<string>)[^<]*/$1$ENV{LABEL}/; s/(<key>CFBundleName<\/key>\s*<string>)[^<]*/$1$ENV{LABEL}/' ios/Runner/Info.plist
+# The store's mark as the launcher icon (assets/icon/icon.png, set in pubspec.yaml).
+dart run flutter_launcher_icons
 echo "scaffolded $pkg as com.yazanus.$short"

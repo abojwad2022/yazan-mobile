@@ -56,8 +56,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { app: yazan_store, short: store }
-          - { app: yazan_admin, short: admin }
+          - { app: yazan_store, short: store, label: YAZAN }
+          - { app: yazan_admin, short: admin, label: YAZAN Admin }
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -76,7 +76,7 @@ jobs:
       - name: Generate platform folders and localisations
         working-directory: mobile/apps/${{ matrix.app }}
         run: |
-          bash ../../tools/ci_run.sh scaffold bash ../../tools/scaffold_platforms.sh ${{ matrix.short }} ${{ matrix.app }}
+          bash ../../tools/ci_run.sh scaffold bash ../../tools/scaffold_platforms.sh ${{ matrix.short }} ${{ matrix.app }} '${{ matrix.label }}'
           bash ../../tools/ci_run.sh gen-l10n flutter gen-l10n
       - name: Analyze and test the app
         working-directory: mobile/apps/${{ matrix.app }}
@@ -108,8 +108,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { app: yazan_store, short: store }
-          - { app: yazan_admin, short: admin }
+          - { app: yazan_store, short: store, label: YAZAN }
+          - { app: yazan_admin, short: admin, label: YAZAN Admin }
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
@@ -124,7 +124,7 @@ jobs:
       - name: Generate platform folders and localisations
         working-directory: mobile/apps/${{ matrix.app }}
         run: |
-          bash ../../tools/ci_run.sh scaffold bash ../../tools/scaffold_platforms.sh ${{ matrix.short }} ${{ matrix.app }}
+          bash ../../tools/ci_run.sh scaffold bash ../../tools/scaffold_platforms.sh ${{ matrix.short }} ${{ matrix.app }} '${{ matrix.label }}'
           bash ../../tools/ci_run.sh gen-l10n flutter gen-l10n
       - name: Build for the simulator (no code signing)
         working-directory: mobile/apps/${{ matrix.app }}

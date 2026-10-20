@@ -107,6 +107,14 @@ void main() {
       expect([for (final p in await repo.products()) p.id], [2]);
     });
 
+    test('products are read through FeedStore.readAll, whatever the store', () async {
+      final repo = CatalogueRepository(
+        store: _ListStore([_record(2, 'Zinc'), _record(1, 'Agate')]),
+        fetch: (cursor) async => throw StateError('not called'),
+      );
+      expect([for (final p in await repo.products()) p.name], ['Agate', 'Zinc']);
+    });
+
     test('a failed refresh throws and keeps the cache and lastSyncedAt', () async {
       var fail = false;
       final repo = CatalogueRepository(
@@ -123,4 +131,25 @@ void main() {
       expect([for (final p in await repo.products()) p.name], ['Keep']);
     });
   });
+}
+
+/// A non-memory store: only the [FeedStore] interface is available to the repository.
+class _ListStore implements FeedStore {
+  _ListStore(this.rows);
+
+  final List<Map<String, dynamic>> rows;
+
+  @override
+  Future<String> readCursor() async => '';
+
+  @override
+  Future<List<Map<String, dynamic>>> readAll() async => rows;
+
+  @override
+  Future<void> apply({
+    required List<Map<String, dynamic>> upserts,
+    required List<int> deletedIds,
+    required String cursor,
+    required bool initial,
+  }) async {}
 }

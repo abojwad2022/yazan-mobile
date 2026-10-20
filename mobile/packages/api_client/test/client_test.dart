@@ -164,4 +164,31 @@ void main() {
     expect(r.body['id'], 5);
     expect(r.version, 'abc123');
   });
+
+  test('raw returns status, body and lower-case headers without throwing on errors', () async {
+    final store = MemoryTokenStore();
+    final a = FakeAdapter((o) => (409, {'code': 'busy'}, {'Cart-Token': 'tok1'}));
+    final r = await make(a, store).raw('POST', '/wc/store/v1/cart/add-item',
+        body: {'id': 1}, headers: {'Cart-Token': 'old'});
+    expect(r.status, 409);
+    expect(r.body['code'], 'busy');
+    expect(r.headers['cart-token'], 'tok1');
+    expect(a.seen.single.headers['Cart-Token'], 'old');
+    // Signed out: no bearer is sent.
+    expect(a.seen.single.headers.containsKey('Authorization'), isFalse);
+  });
+
+  test('raw refreshes once on an expired token and retries', () async {
+    final store = MemoryTokenStore();
+    await store.write(Session.fromJson(pair('yzm_old', 'yzr_old')));
+    var n = 0;
+    final a = FakeAdapter((o) {
+      if (o.path.endsWith('/auth/refresh')) return (200, pair('yzm_new', 'yzr_new'), {});
+      n++;
+      return n == 1 ? (401, {'code': 'yazan_mobile_bad_token'}, {}) : (200, {'ok': true}, {});
+    });
+    final r = await make(a, store).raw('GET', '/wc/store/v1/cart');
+    expect(r.status, 200);
+    expect(a.seen.last.headers['Authorization'], 'Bearer yzm_new');
+  });
 }

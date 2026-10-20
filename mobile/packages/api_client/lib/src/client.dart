@@ -151,6 +151,69 @@ class YazanApiClient {
         },
       );
 
+  /// A request that never throws on a non-2xx answer: returns the status, the decoded body (`{}` when it
+  /// is not a JSON object) and the response headers (lower-case names). For callers that need headers
+  /// both ways, such as the WooCommerce Store API (`Cart-Token`, `Idempotency-Key`).
+  ///
+  /// Sends the bearer when a session exists and works signed out too (guest carts). One refresh on an
+  /// expired access token, exactly like the other calls. Only a network failure throws.
+  Future<({int status, Map<String, dynamic> body, Map<String, String> headers})> raw(
+    String method,
+    String path, {
+    Object? body,
+    Map<String, String> headers = const {},
+    bool retried = false,
+  }) async {
+    final extra = <String, String>{...headers};
+    final session = await tokens.read();
+
+    if (session != null) {
+      extra['Authorization'] = 'Bearer ${session.accessToken}';
+    }
+
+    final encoded = body == null ? null : jsonEncode(body);
+
+    if (encoded != null) {
+      meter.sentBytes += utf8.encode(encoded).length;
+      extra['Content-Type'] = 'application/json';
+    }
+
+    final res = await _dio.request<String>(
+      path,
+      data: encoded,
+      options: Options(method: method, headers: extra),
+    );
+    final text = res.data ?? '';
+    meter.receivedBytes += utf8.encode(text).length;
+
+    Map<String, dynamic> decoded = <String, dynamic>{};
+
+    if (text.isNotEmpty) {
+      try {
+        final value = jsonDecode(text);
+
+        if (value is Map<String, dynamic>) {
+          decoded = value;
+        }
+      } on FormatException {
+        decoded = <String, dynamic>{};
+      }
+    }
+
+    final status = res.statusCode ?? 0;
+
+    if (session != null && !retried && status == 401 && ApiError.fromJson(status, decoded).action == ErrorAction.refreshThenRetry) {
+      await _refresh(session);
+
+      return raw(method, path, body: body, headers: headers, retried: true);
+    }
+
+    final out = <String, String>{};
+    res.headers.forEach((name, values) => out[name.toLowerCase()] = values.join(', '));
+
+    return (status: status, body: decoded, headers: out);
+  }
+
   Future<DeltaPage> syncCatalog({String cursor = '', int limit = 50}) async =>
       DeltaPage.fromJson(await getJson('$_ns/sync/catalog', query: {'cursor': cursor, 'limit': limit}));
 

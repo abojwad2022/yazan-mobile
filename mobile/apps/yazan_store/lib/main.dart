@@ -20,6 +20,6 @@ Future<void> main() async {
   // read custom headers, so this fallback has no Cart-Token: it relies on the signed-in customer's
   // server-side cart (see clientStoreTransport). Once the client exposes a raw request, swap in:
   //   StoreApi(client.raw, tokens: SecureCartTokenStore())
-  final storeApi = StoreApi(clientStoreTransport(client), tokens: SecureCartTokenStore());
+  final storeApi = StoreApi(client.raw, tokens: SecureCartTokenStore());
   runApp(YazanApp(client: client, tokens: tokens, storeApi: storeApi));
 }

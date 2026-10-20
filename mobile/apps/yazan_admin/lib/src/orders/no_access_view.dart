@@ -4,7 +4,10 @@ import '../../l10n/app_localizations.dart';
 
 /// Shown when the server answers 403 for a feature the staff user may not use.
 class NoAccessView extends StatelessWidget {
-  const NoAccessView({super.key});
+  const NoAccessView({super.key, this.body});
+
+  /// What the person may not do; defaults to the orders wording.
+  final String? body;
 
   @override
   Widget build(BuildContext context) {
@@ -20,7 +23,7 @@ class NoAccessView extends StatelessWidget {
             const SizedBox(height: 12),
             Text(l.noAccessTitle, style: t.titleMedium),
             const SizedBox(height: 8),
-            Text(l.noAccessBody, textAlign: TextAlign.center),
+            Text(body ?? l.noAccessBody, textAlign: TextAlign.center),
           ],
         ),
       ),

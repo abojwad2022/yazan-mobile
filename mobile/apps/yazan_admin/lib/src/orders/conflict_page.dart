@@ -12,7 +12,13 @@ class ConflictPage extends StatelessWidget {
     required this.server,
     required this.onKeepServer,
     required this.onOverwrite,
+    this.title,
+    this.body,
   });
+
+  /// Heading and explanation; default to the order wording.
+  final String? title;
+  final String? body;
 
   /// Field label to value, in display order.
   final List<MapEntry<String, String>> local;
@@ -24,11 +30,11 @@ class ConflictPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(l.conflictTitle)),
+      appBar: AppBar(title: Text(title ?? l.conflictTitle)),
       body: ListView(
         padding: const EdgeInsetsDirectional.all(16),
         children: [
-          Text(l.conflictBody),
+          Text(body ?? l.conflictBody),
           const SizedBox(height: 16),
           _Section(title: l.conflictMine, rows: local),
           const SizedBox(height: 16),

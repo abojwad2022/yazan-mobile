@@ -80,5 +80,101 @@
   "noteSendFailed": "Could not send",
   "noteQueued": "Saved on the phone. It will be sent when you are online.",
   "noteToCustomer": "Sent to customer",
-  "syncNow": "Sync now"
+  "syncNow": "Sync now",
+  "productsTitle": "Products",
+  "productsEmpty": "No products yet.",
+  "productsLoadFailed": "Could not load products. Pull down to try again.",
+  "productsSearchHint": "Search by name or SKU",
+  "productsNoMatch": "No product matches “{query}”.",
+  "@productsNoMatch": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "productSku": "SKU: {sku}",
+  "@productSku": {
+    "placeholders": {
+      "sku": {
+        "type": "String"
+      }
+    }
+  },
+  "noAccessProductsBody": "Your account does not have permission to view products. Ask the store owner to grant it.",
+  "stockIn": "In stock",
+  "stockInCount": "In stock: {count}",
+  "@stockInCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "stockOut": "Out of stock",
+  "stockBackorder": "On backorder",
+  "productPriceLabel": "Price",
+  "productRegularPrice": "Regular price",
+  "productSalePrice": "Sale price (optional)",
+  "productSalePriceShort": "Sale price",
+  "productStockLabel": "Stock",
+  "productStockQty": "Stock quantity",
+  "productEditPrice": "Edit price",
+  "productEditStock": "Edit stock",
+  "productOnlineOnly": "Price and stock changes need a connection and are never saved offline.",
+  "productVariableNote": "This product has sizes. Change the price and stock of each size on the website for now.",
+  "productStockNotCounted": "Stock for this product is not counted by quantity, so it cannot be edited here.",
+  "productReadOnly": "Your account can view this product but not change its price or stock.",
+  "productPermissionsUnknown": "Your permissions could not be checked. Connect and reopen this product to edit it.",
+  "productDetailFailed": "Could not load the product details.",
+  "priceInvalid": "Enter a price greater than zero, for example 129.50.",
+  "salePriceInvalid": "Enter a sale price lower than the regular price, or leave it empty.",
+  "stockInvalid": "Enter a whole number, zero or more.",
+  "productPriceConfirm": "Set the price of “{name}” to {price}? Customers see the new price straight away.",
+  "@productPriceConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "productPriceConfirmSale": "Set the price of “{name}” to {price}, on sale at {sale}? Customers see the new prices straight away.",
+  "@productPriceConfirmSale": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "price": {
+        "type": "String"
+      },
+      "sale": {
+        "type": "String"
+      }
+    }
+  },
+  "productStockConfirm": "Set the stock of “{name}” to {count}? It is {current} now. Customers see this straight away.",
+  "@productStockConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      },
+      "current": {
+        "type": "int"
+      }
+    }
+  },
+  "productSave": "Save",
+  "productConfirm": "Confirm",
+  "productUpdated": "Product updated.",
+  "productNotApplied": "The store did not apply this change. Check your permission and the current values, then try again.",
+  "productChangeFailed": "Could not save the change.",
+  "productNoPermission": "You do not have permission to change this.",
+  "conflictProductTitle": "This product changed",
+  "conflictProductBody": "Someone else updated this product while you were editing. Choose which version to keep."
 }

@@ -80,5 +80,101 @@
   "noteSendFailed": "تعذّر الإرسال",
   "noteQueued": "حُفظت على الهاتف وستُرسل عند الاتصال.",
   "noteToCustomer": "أُرسلت إلى العميل",
-  "syncNow": "مزامنة الآن"
+  "syncNow": "مزامنة الآن",
+  "productsTitle": "المنتجات",
+  "productsEmpty": "لا توجد منتجات بعد.",
+  "productsLoadFailed": "تعذّر تحميل المنتجات. اسحب للأسفل للمحاولة مجددًا.",
+  "productsSearchHint": "ابحث بالاسم أو برمز المنتج (SKU)",
+  "productsNoMatch": "لا يوجد منتج مطابق لـ «{query}».",
+  "@productsNoMatch": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "productSku": "الرمز: {sku}",
+  "@productSku": {
+    "placeholders": {
+      "sku": {
+        "type": "String"
+      }
+    }
+  },
+  "noAccessProductsBody": "حسابك لا يملك صلاحية عرض المنتجات. اطلب من مالك المتجر منحك إياها.",
+  "stockIn": "متوفر",
+  "stockInCount": "متوفر: {count}",
+  "@stockInCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "stockOut": "نفد من المخزون",
+  "stockBackorder": "طلب مسبق",
+  "productPriceLabel": "السعر",
+  "productRegularPrice": "السعر العادي",
+  "productSalePrice": "سعر التخفيض (اختياري)",
+  "productSalePriceShort": "سعر التخفيض",
+  "productStockLabel": "المخزون",
+  "productStockQty": "كمية المخزون",
+  "productEditPrice": "تعديل السعر",
+  "productEditStock": "تعديل المخزون",
+  "productOnlineOnly": "تعديل السعر والمخزون يحتاج إلى اتصال، ولا يُحفظ أبدًا دون اتصال.",
+  "productVariableNote": "لهذا المنتج مقاسات. غيّر سعر كل مقاس ومخزونه من الموقع حاليًا.",
+  "productStockNotCounted": "مخزون هذا المنتج لا يُحسب بالكمية، لذا لا يمكن تعديله هنا.",
+  "productReadOnly": "حسابك يستطيع عرض هذا المنتج لكنه لا يستطيع تغيير سعره أو مخزونه.",
+  "productPermissionsUnknown": "تعذّر التحقق من صلاحياتك. اتصل بالإنترنت وأعد فتح المنتج لتعديله.",
+  "productDetailFailed": "تعذّر تحميل تفاصيل المنتج.",
+  "priceInvalid": "أدخل سعرًا أكبر من صفر، مثل 129.50.",
+  "salePriceInvalid": "أدخل سعر تخفيض أقل من السعر العادي، أو اتركه فارغًا.",
+  "stockInvalid": "أدخل عددًا صحيحًا، صفرًا أو أكثر.",
+  "productPriceConfirm": "تعيين سعر «{name}» إلى {price}؟ سيرى العملاء السعر الجديد فورًا.",
+  "@productPriceConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "productPriceConfirmSale": "تعيين سعر «{name}» إلى {price} مع تخفيض بسعر {sale}؟ سيرى العملاء الأسعار الجديدة فورًا.",
+  "@productPriceConfirmSale": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "price": {
+        "type": "String"
+      },
+      "sale": {
+        "type": "String"
+      }
+    }
+  },
+  "productStockConfirm": "تعيين مخزون «{name}» إلى {count}؟ هو الآن {current}. سيرى العملاء ذلك فورًا.",
+  "@productStockConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      },
+      "current": {
+        "type": "int"
+      }
+    }
+  },
+  "productSave": "حفظ",
+  "productConfirm": "تأكيد",
+  "productUpdated": "تم تحديث المنتج.",
+  "productNotApplied": "لم يطبّق المتجر هذا التغيير. تحقق من صلاحيتك ومن القيم الحالية ثم حاول مجددًا.",
+  "productChangeFailed": "تعذّر حفظ التغيير.",
+  "productNoPermission": "لا تملك صلاحية تغيير هذا.",
+  "conflictProductTitle": "تغيّر هذا المنتج",
+  "conflictProductBody": "قام شخص آخر بتحديث هذا المنتج أثناء تعديلك. اختر النسخة التي تريد الإبقاء عليها."
 }

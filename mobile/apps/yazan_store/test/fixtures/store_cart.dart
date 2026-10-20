@@ -235,5 +235,5 @@ class FakeTransport {
 StoreResponse ok(Map<String, dynamic> body, {Map<String, String> headers = const {}}) =>
     (status: 200, body: body, headers: headers);
 
-StoreResponse fail(int status, String code, String message) =>
+StoreResponse failResponse(int status, String code, String message) =>
     (status: status, body: <String, dynamic>{'code': code, 'message': message, 'data': {'status': status}}, headers: const <String, String>{});

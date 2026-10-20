@@ -151,7 +151,7 @@ void main() {
     });
 
     test('server errors surface with their code and plain message', () async {
-      final fake = FakeTransport((r) => fail(
+      final fake = FakeTransport((r) => failResponse(
             400,
             'woocommerce_rest_cart_product_no_stock',
             'You cannot add &quot;Ring&quot; - it is out of stock.',
@@ -199,14 +199,14 @@ void main() {
 
     test('a 5xx or busy answer keeps the key; a definite rejection replaces it', () async {
       var status = 503;
-      final fake = FakeTransport((r) => fail(status, 'yazan_idempotency_busy', ''));
+      final fake = FakeTransport((r) => failResponse(status, 'yazan_idempotency_busy', ''));
       final api = StoreApi(fake.call);
 
       await expectLater(api.checkout(_details), throwsA(isA<StoreApiException>()));
       status = 409;
       await expectLater(api.checkout(_details), throwsA(isA<StoreApiException>()));
       status = 400;
-      fake.handler = (r) => fail(status, 'woocommerce_rest_invalid_address', 'Postcode is required.');
+      fake.handler = (r) => failResponse(status, 'woocommerce_rest_invalid_address', 'Postcode is required.');
       await expectLater(api.checkout(_details), throwsA(isA<StoreApiException>()));
       fake.handler = (r) => ok(checkoutSuccess());
       await api.checkout(_details);

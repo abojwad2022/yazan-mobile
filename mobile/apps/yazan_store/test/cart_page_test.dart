@@ -90,7 +90,7 @@ void main() {
     await tester.pumpWidget(_app(CartPage(controller: controller), const Locale('en')));
     await tester.pumpAndSettle();
 
-    fake.handler = (r) => fail(
+    fake.handler = (r) => failResponse(
           400,
           'woocommerce_rest_product_partially_out_of_stock',
           'Not enough units of Carnelian &amp; Silver Ring are available.',

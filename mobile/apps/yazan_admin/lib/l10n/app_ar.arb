@@ -176,5 +176,45 @@
   "productChangeFailed": "تعذّر حفظ التغيير.",
   "productNoPermission": "لا تملك صلاحية تغيير هذا.",
   "conflictProductTitle": "تغيّر هذا المنتج",
-  "conflictProductBody": "قام شخص آخر بتحديث هذا المنتج أثناء تعديلك. اختر النسخة التي تريد الإبقاء عليها."
+  "conflictProductBody": "قام شخص آخر بتحديث هذا المنتج أثناء تعديلك. اختر النسخة التي تريد الإبقاء عليها.",
+  "customersTitle": "العملاء",
+  "customersEmpty": "لا يوجد عملاء بعد.",
+  "customersLoadFailed": "تعذّر تحميل العملاء. اسحب للأسفل للمحاولة مجددًا.",
+  "customersSearchHint": "ابحث بالاسم أو البريد أو الهاتف",
+  "customersNoMatch": "لا يوجد عميل مطابق لـ «{query}».",
+  "@customersNoMatch": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "noAccessCustomersBody": "حسابك لا يملك صلاحية عرض العملاء. اطلب من مالك المتجر منحك إياها.",
+  "customerUnnamed": "عميل بلا اسم",
+  "customerOrdersCount": "الطلبات: {count}",
+  "@customerOrdersCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "customerOrders": "الطلبات",
+  "customerTotalSpent": "إجمالي الإنفاق",
+  "customerContact": "التواصل",
+  "customerEmailLabel": "البريد الإلكتروني",
+  "customerPhoneLabel": "الهاتف",
+  "customerSince": "عميل منذ {date}",
+  "@customerSince": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "customerAddress": "عنوان الفوترة",
+  "customerLastOrder": "آخر طلب",
+  "customerNoOrders": "لا توجد طلبات بعد.",
+  "customerDetailFailed": "تعذّر تحميل تفاصيل العميل. تحتاج إلى اتصال ولا تُحفظ على الهاتف.",
+  "customerPiiHidden": "بيانات التواصل والعناوين مخفية عن حسابك."
 }

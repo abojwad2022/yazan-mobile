@@ -3,6 +3,11 @@ import 'package:yazan_api_client/yazan_api_client.dart';
 import 'package:yazan_offline_sync/yazan_offline_sync.dart';
 
 import '../l10n/app_localizations.dart';
+import 'customers/customer_api.dart';
+import 'customers/customer_detail_page.dart';
+import 'customers/customer_summary.dart';
+import 'customers/customers_list_page.dart';
+import 'customers/customers_repository.dart';
 import 'orders/order_api.dart';
 import 'orders/order_detail_page.dart';
 import 'orders/order_summary.dart';
@@ -37,16 +42,33 @@ class _HomePageState extends State<HomePage> {
   late final OutboxStore _outbox = widget.outbox ?? MemoryOutboxStore();
   late final SyncEngine _sync = SyncEngine(store: _outbox, send: outboxSender(widget.client));
 
-  /// 0 = orders, 1 = products. The products page is built the first time it is opened, so a
-  /// signed-in start costs one feed pull, not two.
+  /// Customers hold personal data: kept in memory only and dropped with this screen on sign-out.
+  late final CustomersRepository _customers = CustomersRepository.forClient(widget.client);
+
+  /// 0 = orders, 1 = products, 2 = customers. The products and customers pages are built the
+  /// first time they are opened, so a signed-in start costs one feed pull, not three.
   int _tab = 0;
   bool _productsOpened = false;
+  bool _customersOpened = false;
 
   @override
   void dispose() {
     _orders.dispose();
     _products.dispose();
+    _customers.dispose();
     super.dispose();
+  }
+
+  void _openCustomer(CustomerSummary customer) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => CustomerDetailPage(
+          summary: customer,
+          load: customerLoader(widget.client),
+          permissions: _customers.permissions,
+        ),
+      ),
+    );
   }
 
   void _openProduct(ProductSummary product) {
@@ -102,6 +124,10 @@ class _HomePageState extends State<HomePage> {
             ProductsListPage(repository: _products, onOpen: _openProduct)
           else
             const SizedBox.shrink(),
+          if (_customersOpened)
+            CustomersListPage(repository: _customers, onOpen: _openCustomer)
+          else
+            const SizedBox.shrink(),
         ],
       ),
       bottomNavigationBar: NavigationBar(
@@ -109,6 +135,7 @@ class _HomePageState extends State<HomePage> {
         onDestinationSelected: (i) => setState(() {
           _tab = i;
           if (i == 1) _productsOpened = true;
+          if (i == 2) _customersOpened = true;
         }),
         destinations: [
           NavigationDestination(
@@ -120,6 +147,11 @@ class _HomePageState extends State<HomePage> {
             key: const ValueKey('tab-products'),
             icon: const Icon(Icons.diamond_outlined),
             label: l.productsTitle,
+          ),
+          NavigationDestination(
+            key: const ValueKey('tab-customers'),
+            icon: const Icon(Icons.people_outline),
+            label: l.customersTitle,
           ),
         ],
       ),

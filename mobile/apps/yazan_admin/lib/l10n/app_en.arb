@@ -176,5 +176,45 @@
   "productChangeFailed": "Could not save the change.",
   "productNoPermission": "You do not have permission to change this.",
   "conflictProductTitle": "This product changed",
-  "conflictProductBody": "Someone else updated this product while you were editing. Choose which version to keep."
+  "conflictProductBody": "Someone else updated this product while you were editing. Choose which version to keep.",
+  "customersTitle": "Customers",
+  "customersEmpty": "No customers yet.",
+  "customersLoadFailed": "Could not load customers. Pull down to try again.",
+  "customersSearchHint": "Search by name, email or phone",
+  "customersNoMatch": "No customer matches “{query}”.",
+  "@customersNoMatch": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "noAccessCustomersBody": "Your account does not have permission to view customers. Ask the store owner to grant it.",
+  "customerUnnamed": "Unnamed customer",
+  "customerOrdersCount": "Orders: {count}",
+  "@customerOrdersCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "customerOrders": "Orders",
+  "customerTotalSpent": "Total spent",
+  "customerContact": "Contact",
+  "customerEmailLabel": "Email",
+  "customerPhoneLabel": "Phone",
+  "customerSince": "Customer since {date}",
+  "@customerSince": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "customerAddress": "Billing address",
+  "customerLastOrder": "Last order",
+  "customerNoOrders": "No orders yet.",
+  "customerDetailFailed": "Could not load the customer details. They need a connection and are not kept on the phone.",
+  "customerPiiHidden": "Contact details and addresses are hidden for your account."
 }

@@ -1,5 +1,116 @@
 {
   "@@locale": "en",
+  "moreTab": "More",
+  "moreTitle": "More",
+  "moreEmpty": "Nothing else is available for your account.",
+  "couponsTitle": "Coupons",
+  "couponsSearchHint": "Search by code or description",
+  "couponsEmpty": "No coupons yet.",
+  "couponsLoadFailed": "Could not load coupons. Pull down to try again.",
+  "couponsNoMatch": "No coupon matches “{query}”.",
+  "@couponsNoMatch": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "noAccessCouponsBody": "Your account does not have permission to view coupons. Ask the store owner to grant it.",
+  "couponActive": "Active",
+  "couponExpired": "Expired",
+  "couponUsageCount": "Used {count}",
+  "@couponUsageCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "couponUsageLimit": "Used {count} of {limit}",
+  "@couponUsageLimit": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
+  "couponExpiresOn": "Expires {date}",
+  "@couponExpiresOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "couponNoExpiry": "No expiry",
+  "couponDiscountLabel": "Discount",
+  "couponExpiryLabel": "Expiry",
+  "couponUsageLabel": "Usage",
+  "couponFreeShipping": "Free shipping",
+  "couponTypePercent": "Percentage",
+  "couponTypeFixedCart": "Fixed cart discount",
+  "couponTypeFixedProduct": "Fixed product discount",
+  "couponEditAmount": "Change amount",
+  "couponEditExpiry": "Change expiry",
+  "couponExpireNow": "Expire now",
+  "couponReenable": "Remove expiry",
+  "couponAmountLabel": "Discount amount",
+  "couponExpiryField": "Expiry date (YYYY-MM-DD, empty for none)",
+  "couponPickDate": "Pick a date",
+  "couponAmountInvalid": "Enter an amount greater than zero, for example 10 or 12.50.",
+  "couponPercentInvalid": "A percentage cannot be more than 100.",
+  "couponExpiryInvalid": "Enter a date like 2026-12-31, or leave it empty.",
+  "couponAmountConfirm": "Set the discount of “{code}” to {amount}? It applies to customers’ orders straight away.",
+  "@couponAmountConfirm": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "couponExpiryConfirm": "Set “{code}” to expire on {date}?",
+  "@couponExpiryConfirm": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "couponExpiryClearConfirm": "Remove the expiry date of “{code}”? It can be used again straight away.",
+  "@couponExpiryClearConfirm": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "couponExpireNowConfirm": "Stop “{code}” now? Customers can no longer use it.",
+  "@couponExpireNowConfirm": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "couponConfirm": "Confirm",
+  "couponSave": "Save",
+  "couponOnlineOnly": "Coupon changes need a connection and are never saved offline.",
+  "couponReadOnly": "Your account can view this coupon but not change it.",
+  "couponDetailFailed": "Could not load the coupon details.",
+  "couponUpdated": "Coupon updated.",
+  "couponNotApplied": "The store did not apply this change. Check your permission and the current values, then try again.",
+  "couponChangeFailed": "Could not save the change.",
+  "couponNoPermission": "You do not have permission to change this.",
+  "couponOffline": "No connection. Nothing was changed. Try again when you are online.",
   "appTitle": "YAZAN Admin",
   "enrolFirst": "Set up the authenticator for this account on the website first, then sign in here.",
   "signIn": "Sign in",
@@ -352,5 +463,82 @@
       }
     }
   },
-  "dashboardRecentOrders": "Recent orders"
+  "dashboardRecentOrders": "Recent orders",
+  "reportsTitle": "Reports",
+  "reportsLoadFailed": "Could not load the reports. Pull down to try again.",
+  "reportsNoAccessBody": "Your account does not have permission to view reports. Ask the store owner to grant it.",
+  "reportsSales": "Sales",
+  "reportsNoSales": "No sales in this period.",
+  "reportsChartLabel": "Net revenue per day",
+  "reportsGrossRevenue": "Gross revenue",
+  "reportsTopProducts": "Top products",
+  "reportsTopProductSold": "Sold: {qty}",
+  "@reportsTopProductSold": {
+    "placeholders": {
+      "qty": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsOrdersByStatus": "Orders by status",
+  "reportsRefunds": "Refunds",
+  "reportsRefundedOrders": "Fully refunded orders: {count}",
+  "@reportsRefundedOrders": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "inventoryTitle": "Inventory",
+  "inventoryLoadFailed": "Could not load the stock report. Pull down to try again.",
+  "inventoryNoAccessBody": "Your account does not have permission to view inventory. Ask the store owner to grant it.",
+  "inventorySearchHint": "Search by name or SKU",
+  "inventoryOutOfStock": "Out of stock ({count})",
+  "@inventoryOutOfStock": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "inventoryLowStock": "Low stock, {limit} or fewer ({count})",
+  "@inventoryLowStock": {
+    "placeholders": {
+      "limit": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "inventoryLowStockNoLimit": "Low stock ({count})",
+  "@inventoryLowStockNoLimit": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "inventoryEmpty": "Nothing needs restocking.",
+  "inventoryNoMatch": "No products match your search.",
+  "inventoryQuantity": "In stock: {qty}",
+  "@inventoryQuantity": {
+    "placeholders": {
+      "qty": {
+        "type": "int"
+      }
+    }
+  },
+  "inventoryQuantityUnknown": "Quantity is not tracked for this product.",
+  "inventorySku": "SKU: {sku}",
+  "@inventorySku": {
+    "placeholders": {
+      "sku": {
+        "type": "String"
+      }
+    }
+  },
+  "inventoryOpenProduct": "Open product"
 }

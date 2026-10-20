@@ -1,5 +1,116 @@
 {
   "@@locale": "ar",
+  "moreTab": "المزيد",
+  "moreTitle": "المزيد",
+  "moreEmpty": "لا يتوفر شيء آخر لحسابك.",
+  "couponsTitle": "الكوبونات",
+  "couponsSearchHint": "ابحث بالرمز أو الوصف",
+  "couponsEmpty": "لا توجد كوبونات بعد.",
+  "couponsLoadFailed": "تعذّر تحميل الكوبونات. اسحب للأسفل لإعادة المحاولة.",
+  "couponsNoMatch": "لا يوجد كوبون يطابق «{query}».",
+  "@couponsNoMatch": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "noAccessCouponsBody": "حسابك لا يملك صلاحية عرض الكوبونات. اطلب من مالك المتجر منحك إياها.",
+  "couponActive": "فعّال",
+  "couponExpired": "منتهي",
+  "couponUsageCount": "استُخدم {count}",
+  "@couponUsageCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "couponUsageLimit": "استُخدم {count} من {limit}",
+  "@couponUsageLimit": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
+  "couponExpiresOn": "ينتهي {date}",
+  "@couponExpiresOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "couponNoExpiry": "بلا تاريخ انتهاء",
+  "couponDiscountLabel": "الخصم",
+  "couponExpiryLabel": "الانتهاء",
+  "couponUsageLabel": "الاستخدام",
+  "couponFreeShipping": "شحن مجاني",
+  "couponTypePercent": "نسبة مئوية",
+  "couponTypeFixedCart": "خصم ثابت على السلة",
+  "couponTypeFixedProduct": "خصم ثابت على المنتج",
+  "couponEditAmount": "تغيير المبلغ",
+  "couponEditExpiry": "تغيير تاريخ الانتهاء",
+  "couponExpireNow": "إنهاء الآن",
+  "couponReenable": "إزالة تاريخ الانتهاء",
+  "couponAmountLabel": "قيمة الخصم",
+  "couponExpiryField": "تاريخ الانتهاء (YYYY-MM-DD، اتركه فارغًا لبلا انتهاء)",
+  "couponPickDate": "اختر تاريخًا",
+  "couponAmountInvalid": "أدخل قيمة أكبر من صفر، مثل 10 أو 12.50.",
+  "couponPercentInvalid": "لا يمكن أن تتجاوز النسبة المئوية 100.",
+  "couponExpiryInvalid": "أدخل تاريخًا مثل 2026-12-31، أو اتركه فارغًا.",
+  "couponAmountConfirm": "ضبط خصم «{code}» على {amount}؟ يسري على طلبات العملاء فورًا.",
+  "@couponAmountConfirm": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "couponExpiryConfirm": "ضبط انتهاء «{code}» في {date}؟",
+  "@couponExpiryConfirm": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "couponExpiryClearConfirm": "إزالة تاريخ انتهاء «{code}»؟ يمكن استخدامه مجددًا فورًا.",
+  "@couponExpiryClearConfirm": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "couponExpireNowConfirm": "إيقاف «{code}» الآن؟ لن يتمكن العملاء من استخدامه.",
+  "@couponExpireNowConfirm": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "couponConfirm": "تأكيد",
+  "couponSave": "حفظ",
+  "couponOnlineOnly": "تغييرات الكوبونات تحتاج إلى اتصال ولا تُحفظ دون اتصال أبدًا.",
+  "couponReadOnly": "حسابك يستطيع عرض هذا الكوبون دون تغييره.",
+  "couponDetailFailed": "تعذّر تحميل تفاصيل الكوبون.",
+  "couponUpdated": "تم تحديث الكوبون.",
+  "couponNotApplied": "لم يطبّق المتجر هذا التغيير. تحقق من صلاحيتك ومن القيم الحالية ثم حاول مجددًا.",
+  "couponChangeFailed": "تعذّر حفظ التغيير.",
+  "couponNoPermission": "لا تملك صلاحية تغيير هذا.",
+  "couponOffline": "لا يوجد اتصال. لم يتغيّر شيء. حاول مجددًا عند عودة الاتصال.",
   "appTitle": "يزن - الإدارة",
   "enrolFirst": "فعّل تطبيق المصادقة لهذا الحساب على الموقع أولًا، ثم سجّل الدخول هنا.",
   "signIn": "تسجيل الدخول",
@@ -352,5 +463,82 @@
       }
     }
   },
-  "dashboardRecentOrders": "أحدث الطلبات"
+  "dashboardRecentOrders": "أحدث الطلبات",
+  "reportsTitle": "التقارير",
+  "reportsLoadFailed": "تعذّر تحميل التقارير. اسحب للأسفل للمحاولة مجددًا.",
+  "reportsNoAccessBody": "حسابك لا يملك صلاحية عرض التقارير. اطلب من مالك المتجر منحك إياها.",
+  "reportsSales": "المبيعات",
+  "reportsNoSales": "لا توجد مبيعات في هذه الفترة.",
+  "reportsChartLabel": "صافي الإيراد اليومي",
+  "reportsGrossRevenue": "إجمالي الإيراد",
+  "reportsTopProducts": "أفضل المنتجات مبيعًا",
+  "reportsTopProductSold": "المباع: {qty}",
+  "@reportsTopProductSold": {
+    "placeholders": {
+      "qty": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsOrdersByStatus": "الطلبات حسب الحالة",
+  "reportsRefunds": "الاستردادات",
+  "reportsRefundedOrders": "الطلبات المستردة بالكامل: {count}",
+  "@reportsRefundedOrders": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "inventoryTitle": "المخزون",
+  "inventoryLoadFailed": "تعذّر تحميل تقرير المخزون. اسحب للأسفل للمحاولة مجددًا.",
+  "inventoryNoAccessBody": "حسابك لا يملك صلاحية عرض المخزون. اطلب من مالك المتجر منحك إياها.",
+  "inventorySearchHint": "ابحث بالاسم أو رمز المنتج",
+  "inventoryOutOfStock": "نفد من المخزون ({count})",
+  "@inventoryOutOfStock": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "inventoryLowStock": "مخزون منخفض، {limit} أو أقل ({count})",
+  "@inventoryLowStock": {
+    "placeholders": {
+      "limit": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "inventoryLowStockNoLimit": "مخزون منخفض ({count})",
+  "@inventoryLowStockNoLimit": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "inventoryEmpty": "لا شيء يحتاج إلى إعادة تخزين.",
+  "inventoryNoMatch": "لا توجد منتجات مطابقة لبحثك.",
+  "inventoryQuantity": "المتوفر: {qty}",
+  "@inventoryQuantity": {
+    "placeholders": {
+      "qty": {
+        "type": "int"
+      }
+    }
+  },
+  "inventoryQuantityUnknown": "الكمية غير مُتتبَّعة لهذا المنتج.",
+  "inventorySku": "رمز المنتج: {sku}",
+  "@inventorySku": {
+    "placeholders": {
+      "sku": {
+        "type": "String"
+      }
+    }
+  },
+  "inventoryOpenProduct": "فتح المنتج"
 }

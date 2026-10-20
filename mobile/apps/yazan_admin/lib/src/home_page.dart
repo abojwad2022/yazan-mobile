@@ -10,6 +10,8 @@ import 'customers/customers_list_page.dart';
 import 'customers/customers_repository.dart';
 import 'dashboard/dashboard_page.dart';
 import 'dashboard/dashboard_repository.dart';
+import 'more/more_page.dart';
+import 'more/more_registry.dart';
 import 'orders/order_api.dart';
 import 'orders/order_detail_page.dart';
 import 'orders/order_summary.dart';
@@ -75,19 +77,21 @@ class _HomePageState extends State<HomePage> {
   late final CustomersRepository _customers =
       CustomersRepository.forClient(widget.client, store: _stores.feed(AdminFeeds.customers));
 
-  /// 0 = dashboard, 1 = orders, 2 = products, 3 = customers. The orders, products and customers
-  /// pages are built the first time they are opened, so a signed-in start costs the dashboard's
-  /// requests, not three feed pulls.
+  /// 0 = dashboard, 1 = orders, 2 = products, 3 = customers, 4 = more (the other sections, see
+  /// [moreEntries]). The orders, products, customers and more pages are built the first time they
+  /// are opened, so a signed-in start costs the dashboard's requests, not three feed pulls.
   int _tab = 0;
   bool _ordersOpened = false;
   bool _productsOpened = false;
   bool _customersOpened = false;
+  bool _moreOpened = false;
 
   void _goTo(int i) => setState(() {
         _tab = i;
         if (i == 1) _ordersOpened = true;
         if (i == 2) _productsOpened = true;
         if (i == 3) _customersOpened = true;
+        if (i == 4) _moreOpened = true;
         if (i == 0) {
           // Coming back to the home tab: its figures may have changed while orders were handled.
           final shown = _dashboard.snapshot;
@@ -248,6 +252,14 @@ class _HomePageState extends State<HomePage> {
             CustomersListPage(repository: _customers, onOpen: _openCustomer)
           else
             const SizedBox.shrink(),
+          if (_moreOpened)
+            MorePage(
+              entries: moreEntries,
+              services: MoreServices(client: widget.client, stores: _stores, sync: _sync),
+              loadPermissions: permissionsLoader(widget.client),
+            )
+          else
+            const SizedBox.shrink(),
         ],
       ),
       bottomNavigationBar: NavigationBar(
@@ -273,6 +285,11 @@ class _HomePageState extends State<HomePage> {
             key: const ValueKey('tab-customers'),
             icon: const Icon(Icons.people_outline),
             label: l.customersTitle,
+          ),
+          NavigationDestination(
+            key: const ValueKey('tab-more'),
+            icon: const Icon(Icons.more_horiz),
+            label: l.moreTab,
           ),
         ],
       ),

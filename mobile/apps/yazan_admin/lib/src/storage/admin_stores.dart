@@ -1,6 +1,6 @@
 import 'package:yazan_offline_sync/yazan_offline_sync.dart';
 
-/// The three mirrored feeds of the Admin app. The names are the `feed` column of the durable
+/// The mirrored feeds of the Admin app. The names are the `feed` column of the durable
 /// store, so renaming one orphans the rows of the old name.
 class AdminFeeds {
   const AdminFeeds._();
@@ -9,6 +9,11 @@ class AdminFeeds {
   static const products = 'products';
   static const customers = 'customers';
   static const dashboard = 'dashboard';
+  static const reports = 'reports';
+  static const inventory = 'inventory';
+
+  /// The last coupon list (a snapshot, replaced on every refresh).
+  static const coupons = 'coupons';
 }
 
 /// What the Admin app needs from durable storage, in the shape of `YazanStorage` but small enough

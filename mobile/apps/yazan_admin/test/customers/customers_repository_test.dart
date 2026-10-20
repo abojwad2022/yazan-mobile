@@ -161,65 +161,189 @@ void main() {
     });
   });
 
-  group('pagedCustomersFetch', () {
-    Map<String, dynamic> body(int page, int pages, List<Map<String, dynamic>> items) => {
-          'items': items,
-          'total': 3,
-          'total_pages': pages,
-          'page': page,
-        };
-
-    test('asks for stats, customers only, and walks the pages as a snapshot', () async {
+  group('customersFeedFetch', () {
+    test('asks the sync feed for the cursor and limit and parses tombstones', () async {
       final queries = <Map<String, dynamic>>[];
-      final fetch = pagedCustomersFetch((q) async {
+      final fetch = customersFeedFetch((q) async {
         queries.add(q);
-        final page = q['page'] as int;
-        return page == 1 ? body(1, 2, [customerRows[0]]) : body(2, 2, [customerRows[1]]);
-      }, limit: 1);
-
-      final first = await fetch('');
-      expect(first.initial, isTrue);
-      expect(first.hasMore, isTrue);
-      expect(first.cursor, '2');
-      expect(queries.first['stats'], '1');
-      expect(queries.first['role'], 'customer');
-      expect(queries.first['per_page'], 1);
-
-      final second = await fetch(first.cursor);
-      expect(second.initial, isFalse);
-      expect(second.hasMore, isFalse);
-      // Empty, so the next refresh starts again from page 1.
-      expect(second.cursor, '');
-      expect(queries.last['page'], 2);
+        return {
+          'items': [
+            {'id': 11, 'name': 'Layla', 'registered': '2026-01-05T10:20:30+00:00'},
+            {'id': 99, 'deleted': true},
+          ],
+          'cursor': 'abc',
+          'has_more': true,
+          'initial': true,
+          'server_time': '2026-10-20T00:00:00+00:00',
+        };
+      }, limit: 25);
+      final page = await fetch('');
+      expect(queries.single, {'cursor': '', 'limit': 25});
+      expect(page.cursor, 'abc');
+      expect(page.hasMore, isTrue);
+      expect(page.initial, isTrue);
+      expect(page.upserts.single['id'], 11);
+      expect(page.deletedIds, [99]);
     });
 
-    test('through pullFeed a refresh replaces the snapshot, so a removed customer disappears', () async {
-      var removed = false;
+    test('a malformed body is a failed refresh, not a crash', () async {
       final repo = CustomersRepository(
-        fetch: pagedCustomersFetch((q) async {
-          return body(1, 1, removed ? [customerRows[0]] : [customerRows[0], customerRows[1]]);
-        }),
+        fetch: customersFeedFetch((q) async => <String, dynamic>{'oops': true}),
       );
       await repo.refresh();
-      expect(repo.all.length, 2);
-      removed = true;
+      expect(repo.lastRefreshFailed, isTrue);
+      expect(repo.all, isEmpty);
+    });
+  });
+
+  group('CustomerSummary from the feed', () {
+    test('keeps only the day of the ISO sign-up time and tolerates removed keys', () {
+      final c = CustomerSummary.fromJson({
+        'id': 5,
+        'name': 'Sara',
+        'order_count': 2,
+        'registered': '2026-03-04T08:00:00+00:00',
+        'modified': '2026-10-01 12:00:00',
+      });
+      expect(c.registered, '2026-03-04');
+      expect(c.email, '');
+      expect(c.phone, '');
+      expect(c.totalSpent, '');
+    });
+  });
+
+  group('CustomersRepository delta feed', () {
+    DeltaPage page(List<Map<String, dynamic>> items,
+            {required String cursor, bool initial = false, bool more = false}) =>
+        DeltaPage(items: items, cursor: cursor, hasMore: more, initial: initial);
+
+    test('walks pages, then a later delta upserts and a tombstone removes', () async {
+      final seen = <String>[];
+      final pages = <String, DeltaPage>{
+        '': page([customerRows[0]], cursor: 'c1', initial: true, more: true),
+        'c1': page([customerRows[1]], cursor: 'c2', initial: true),
+        'c2': page([
+          {'id': 11, 'deleted': true},
+          {...customerRows[1], 'name': 'Omar S.'},
+        ], cursor: 'c3'),
+      };
+      final repo = CustomersRepository(fetch: (c) async {
+        seen.add(c);
+        return pages[c]!;
+      });
       await repo.refresh();
-      expect(repo.all.map((c) => c.id), [11]);
+      expect(seen, ['', 'c1']);
+      expect(repo.all.map((c) => c.id), [11, 12]);
+
+      await repo.refresh();
+      expect(seen.last, 'c2');
+      expect(repo.all.map((c) => c.name), ['Omar S.']);
     });
 
-    test('ignores rows without an integer id and a body without items', () async {
-      final fetch = pagedCustomersFetch((q) async => {
-            'items': [
-              {'id': 'x', 'name': 'bad'},
-              customerRows[0],
-              'junk',
-            ],
-          });
-      final page = await fetch('');
-      expect(page.items.length, 1);
-      final empty = await pagedCustomersFetch((q) async => <String, dynamic>{})('');
-      expect(empty.items, isEmpty);
-      expect(empty.hasMore, isFalse);
+    test('the sync stamp row is never listed', () async {
+      final store = MemoryFeedStore();
+      final repo = CustomersRepository(
+        store: store,
+        fetch: (_) async => page(customerRows, cursor: 'c1', initial: true),
+      );
+      await repo.refresh();
+      expect(store.rows.containsKey(CustomersRepository.metaId), isTrue);
+      expect(store.cursor, 'c1');
+      expect(repo.all.length, 3);
+    });
+
+    test('a cache older than the tombstone window starts over with an empty cursor', () async {
+      var now = DateTime.utc(2026, 1, 1);
+      final seen = <String>[];
+      final repo = CustomersRepository(
+        clock: () => now,
+        fetch: (c) async {
+          seen.add(c);
+          return c.isEmpty
+              ? page(customerRows, cursor: 'c1', initial: true)
+              : page(const [], cursor: c);
+        },
+      );
+      await repo.refresh();
+      now = now.add(const Duration(days: 30));
+      await repo.refresh();
+      expect(seen, ['', 'c1']);
+
+      // Offline for longer than the server keeps tombstones: the deleted customers never arrive,
+      // so the rows are dropped and the whole feed is read again.
+      now = now.add(const Duration(days: 100));
+      seen.clear();
+      await repo.refresh();
+      expect(seen, ['']);
+      expect(repo.all.length, 3);
+    });
+
+    test('a cursor the server refuses (400) is retried once from scratch', () async {
+      final store = MemoryFeedStore()
+        ..rows[11] = Map<String, dynamic>.from(customerRows[0])
+        ..rows[77] = {'id': 77, 'name': 'Deleted long ago', 'email': 'x@example.test'}
+        ..cursor = 'old';
+      final seen = <String>[];
+      final repo = CustomersRepository(
+        store: store,
+        fetch: (c) async {
+          seen.add(c);
+          if (c == 'old') {
+            throw const ApiError(status: 400, code: 'yazan_mobile_bad_cursor');
+          }
+          return page([customerRows[1]], cursor: 'n1', initial: true);
+        },
+      );
+      await repo.refresh();
+      expect(seen, ['old', '']);
+      expect(repo.lastRefreshFailed, isFalse);
+      expect(repo.all.map((c) => c.id), [12]);
+    });
+
+    test('a second refusal is reported, not looped on', () async {
+      var calls = 0;
+      final repo = CustomersRepository(fetch: (_) async {
+        calls++;
+        throw const ApiError(status: 400, code: 'yazan_mobile_bad_cursor');
+      });
+      await repo.refresh();
+      expect(calls, 2);
+      expect(repo.lastRefreshFailed, isTrue);
+    });
+
+    test('without customers.view_pii the cache shows no email or phone, even from older rows', () async {
+      final store = MemoryFeedStore()..rows[12] = Map<String, dynamic>.from(customerRows[1]);
+      final repo = CustomersRepository(
+        store: store,
+        loadPermissions: () async => customersMe(['customers.view']),
+        fetch: (_) async => page(const [], cursor: 'c1'),
+      );
+      await repo.refresh();
+      final c = repo.all.single;
+      expect(c.email, '');
+      expect(c.phone, '');
+      expect(c.totalSpent, '');
+      expect(c.name, 'Omar Saleh');
+    });
+
+    test('granting customers.view_pii later refetches everything, since cached rows lack the key', () async {
+      final seen = <String>[];
+      final store = MemoryFeedStore()
+        ..rows[12] = {'id': 12, 'name': 'Omar Saleh'}
+        ..cursor = 'c1';
+      final repo = CustomersRepository(
+        store: store,
+        loadPermissions: () async => customersMe(['customers.view', 'customers.view_pii']),
+        fetch: (c) async {
+          seen.add(c);
+          return c.isEmpty
+              ? page([customerRows[1]], cursor: 'c9', initial: true)
+              : page(const [], cursor: c);
+        },
+      );
+      await repo.refresh();
+      expect(seen, ['c1', '']);
+      expect(repo.all.single.email, 'omar@example.test');
     });
   });
 }

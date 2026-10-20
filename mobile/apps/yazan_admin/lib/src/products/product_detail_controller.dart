@@ -69,6 +69,13 @@ class _Attempt {
 
 /// State and actions of one product screen. Everything that talks to the network is injected.
 ///
+/// The catalogue feed carries the record's version token. [feedVersion] (with [feedSyncedAt], when
+/// that feed was last pulled to its end) lets a write go out without one more read, but only when
+/// this screen's own read gave no version and the feed copy is younger than [feedFreshFor]; a
+/// stale or missing one is never used and the record is read again right before the write. The
+/// token is dropped after any write of this screen (it is outdated by then). It can only save a
+/// read, never overwrite someone else's change: the server still checks `If-Match` and answers 412.
+///
 /// Price and final stock are online-only: a network failure keeps the attempt (same key) for a
 /// retry and never queues anything. Every write carries `If-Match` with the version of the record
 /// the person is looking at; a stale one (412) opens the conflict screen and writes nothing.
@@ -80,7 +87,14 @@ class ProductDetailController extends ChangeNotifier {
     ProductPermissions permissions = const ProductPermissions.unknown(),
     PermissionsLoader? loadPermissions,
     String Function()? newKey,
-  })  : _load = load,
+    String? feedVersion,
+    DateTime? feedSyncedAt,
+    DateTime Function()? clock,
+    this.feedFreshFor = const Duration(minutes: 2),
+  })  : _feedVersion = feedVersion,
+        _feedSyncedAt = feedSyncedAt,
+        _clock = clock ?? DateTime.now,
+        _load = load,
         _write = write,
         _permissions = permissions,
         _loadPermissions = loadPermissions,
@@ -91,6 +105,12 @@ class ProductDetailController extends ChangeNotifier {
   final ProductWriter _write;
   final PermissionsLoader? _loadPermissions;
   final String Function() _newKey;
+
+  /// How old the feed's copy of the version may be to be trusted as an `If-Match` base.
+  final Duration feedFreshFor;
+  final DateTime Function() _clock;
+  String? _feedVersion;
+  final DateTime? _feedSyncedAt;
 
   ProductPermissions _permissions;
   Map<String, dynamic>? _detail;
@@ -106,6 +126,9 @@ class ProductDetailController extends ChangeNotifier {
   String _lastMessage = '';
 
   Map<String, dynamic>? get detail => _detail;
+
+  /// True when the next write would be based on the feed's version instead of this screen's read.
+  bool get usesFeedVersion => (_version == null || _version!.isEmpty) && _freshFeedVersion() != null;
 
   /// The version the next write is based on: the ETag of the last read. Null before the first read.
   String? get version => _version;
@@ -170,6 +193,15 @@ class ProductDetailController extends ChangeNotifier {
     return int.tryParse(v == null ? '' : '$v');
   }
 
+  /// The feed's version token when it is recent enough to use, else null.
+  String? _freshFeedVersion() {
+    final v = _feedVersion;
+    final at = _feedSyncedAt;
+    if (v == null || v.isEmpty || at == null) return null;
+    final age = _clock().difference(at);
+    return !age.isNegative && age <= feedFreshFor ? v : null;
+  }
+
   static bool _forbidden(ApiError e) => e.action == ErrorAction.hideFeature || e.status == 403;
 
   // ---- reading ---------------------------------------------------------------------------------
@@ -183,6 +215,7 @@ class ProductDetailController extends ChangeNotifier {
       final r = await _load(productId);
       _detail = r.body;
       _version = r.version;
+      if (_version == null || _version!.isEmpty) _version = _freshFeedVersion();
     } on ApiError catch (e) {
       _noAccess = _forbidden(e);
       _failed = true;
@@ -259,8 +292,10 @@ class ProductDetailController extends ChangeNotifier {
 
   Future<ProductEditResult> _sendOnce(_Attempt attempt) async {
     try {
-      // The feed has no version token, so a write is always based on a record read on this screen.
+      // A write is based on the version of a record read on this screen, or of a fresh feed copy;
+      // with neither the record is read again first.
       var v = _version;
+      if (v == null || v.isEmpty) v = _freshFeedVersion();
       if (v == null || v.isEmpty) {
         final r = await _load(productId);
         _detail = r.body;
@@ -270,6 +305,7 @@ class ProductDetailController extends ChangeNotifier {
       if (v == null || v.isEmpty) return ProductEditResult.failed;
       final answer = await _write(productId, attempt.fields, version: v, idempotencyKey: attempt.key);
       _attempt = null;
+      _feedVersion = null;
       // A write answers without an ETag: read the record again for its new version and the truth.
       var truth = answer;
       try {
@@ -315,6 +351,8 @@ class ProductDetailController extends ChangeNotifier {
   }
 
   Future<ProductEditResult> _openConflict(_Attempt attempt, ApiError e) async {
+    // The record moved on: whatever the feed said is out of date.
+    _feedVersion = null;
     try {
       final r = await _load(productId);
       final b = r.body;

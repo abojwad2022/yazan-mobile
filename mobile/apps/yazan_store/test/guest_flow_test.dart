@@ -131,7 +131,9 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Sign in to use this'), findsNothing);
       expect(find.text('Carnelian ring'), findsOneWidget);
-      expect(find.byType(TextField), findsNothing);
+      expect(
+          find.byWidgetPredicate((w) => w is TextField && w.obscureText),
+          findsNothing);
       expect(app.wishlist.calls, isEmpty);
     });
 

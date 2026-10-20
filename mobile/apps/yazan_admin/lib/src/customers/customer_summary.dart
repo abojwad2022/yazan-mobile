@@ -3,9 +3,10 @@ import '../products/product_input.dart' show normalizeDigits;
 /// One row of the customer list. Parsing never throws: a record with missing or odd fields still
 /// renders.
 ///
-/// The fields follow `GET /yazan/v1/customers?stats=1` (`id`, `name`, `email`, `registered`,
-/// `order_count`, `total_spent`). A delta feed would use the same names, plus `phone`. Fields the
-/// server withholds from this account (the lifetime spend needs `reports.view`) are simply empty.
+/// The fields follow `GET /yazan-mobile/v1/sync/customers` (`id`, `name`, `email`, `phone`,
+/// `order_count`, `total_spent`, `registered`, `modified`). Fields the server withholds from this
+/// account (email and phone need `customers.view_pii`, the lifetime spend needs `reports.view`) are
+/// simply empty.
 class CustomerSummary {
   const CustomerSummary({
     required this.id,
@@ -27,7 +28,7 @@ class CustomerSummary {
       phone: _str(json['phone'] ?? json['billing_phone']).trim(),
       orderCount: _int(json['order_count'] ?? json['orders']),
       totalSpent: _str(json['total_spent'] ?? json['spent']).trim(),
-      registered: _str(json['registered'] ?? json['created']).trim(),
+      registered: _day(_str(json['registered'] ?? json['created']).trim()),
     );
   }
 
@@ -37,7 +38,7 @@ class CustomerSummary {
   final String name;
   final String email;
 
-  /// Empty when the feed does not carry it (the list endpoint does not).
+  /// Empty when the account may not see phone numbers.
   final String phone;
 
   /// Null when the server did not say.
@@ -65,6 +66,12 @@ class CustomerSummary {
   static final RegExp _phoneLike = RegExp(r'^[\d\s+\-().٠-٩۰-۹]+$');
 
   static String _digitsOnly(String s) => normalizeDigits(s).replaceAll(RegExp(r'[^0-9]'), '');
+
+  /// The feed sends the sign-up as an ISO timestamp; the screens show the day.
+  static String _day(String v) {
+    final m = RegExp(r'^\d{4}-\d{2}-\d{2}').firstMatch(v);
+    return m == null ? v : m.group(0)!;
+  }
 
   static String _str(Object? v) => v == null ? '' : '$v';
 

@@ -146,7 +146,7 @@ class _ProductRow extends StatelessWidget {
           ),
         ],
       ),
-      trailing: Text(priceText(product.price)),
+      trailing: Text(priceText(product.price, product.currency)),
     );
   }
 }

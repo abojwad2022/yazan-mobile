@@ -184,6 +184,8 @@
   "productEditPrice": "Edit price",
   "productEditStock": "Edit stock",
   "productOnlineOnly": "Price and stock changes need a connection and are never saved offline.",
+  "productVariationsLabel": "Sizes and options",
+  "productVariationsWebNote": "The sizes and options are shown here for reference. Add, remove or change them on the website.",
   "productVariableNote": "This product has sizes. Change the price and stock of each size on the website for now.",
   "productStockNotCounted": "Stock for this product is not counted by quantity, so it cannot be edited here.",
   "productReadOnly": "Your account can view this product but not change its price or stock.",

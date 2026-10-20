@@ -2,10 +2,13 @@ import '../../l10n/app_localizations.dart';
 import 'product_input.dart';
 import 'product_summary.dart';
 
-/// "129.50"; an empty price reads as a dash. The feed carries no currency, so none is shown.
-String priceText(String raw) {
+/// "129.50", or "129.50 SAR" when the currency is known; an empty price reads as a dash. The
+/// amount and the code are joined by a no-break space so the pair holds together in any layout.
+String priceText(String raw, [String currency = '']) {
   final p = plainPrice(raw);
-  return p.isEmpty ? '\u2014' : p;
+  if (p.isEmpty) return '\u2014';
+  final c = currency.trim();
+  return c.isEmpty ? p : '$p\u00a0$c';
 }
 
 /// Localised stock line for a product row: "In stock: 3", "Out of stock", ...

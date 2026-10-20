@@ -22,9 +22,11 @@ class ProductsRepository extends ChangeNotifier {
     required ProductsFetch fetch,
     FeedStore? store,
     PermissionsLoader? loadPermissions,
+    DateTime Function()? clock,
   })  : _fetch = fetch,
         _store = store ?? MemoryFeedStore(),
-        _permissionsLoader = loadPermissions {
+        _permissionsLoader = loadPermissions,
+        _clock = clock ?? DateTime.now {
     _ready = _reload();
   }
 
@@ -42,6 +44,7 @@ class ProductsRepository extends ChangeNotifier {
     );
   }
 
+  final DateTime Function() _clock;
   final ProductsFetch _fetch;
   final FeedStore _store;
   final PermissionsLoader? _permissionsLoader;
@@ -52,6 +55,7 @@ class ProductsRepository extends ChangeNotifier {
   bool _loaded = false;
   bool _failed = false;
   bool _disposed = false;
+  DateTime? _lastSyncedAt;
   ApiError? _error;
   String _query = '';
   ProductPermissions _permissions = const ProductPermissions.unknown();
@@ -64,6 +68,11 @@ class ProductsRepository extends ChangeNotifier {
   /// True once a refresh has finished, successfully or not.
   bool get loaded => _loaded;
   bool get lastRefreshFailed => _failed;
+
+  /// When the feed was last pulled to its end during this run of the app; null before that (a
+  /// cache restored from disk says nothing about how old it is). The product screen uses it to
+  /// decide whether a row's `version` is fresh enough to be trusted as an `If-Match` base.
+  DateTime? get lastSyncedAt => _lastSyncedAt;
   ApiError? get lastError => _error;
   ProductPermissions get permissions => _permissions;
 
@@ -113,6 +122,7 @@ class ProductsRepository extends ChangeNotifier {
   /// refresh starts from scratch.
   Future<void> purge() async {
     _rows = const [];
+    _lastSyncedAt = null;
     try {
       await _store.apply(upserts: const [], deletedIds: const [], cursor: '', initial: true);
     } on Exception {
@@ -138,7 +148,16 @@ class ProductsRepository extends ChangeNotifier {
     await _refreshPermissions();
     if (!noAccess) {
       try {
-        await pullFeed(fetch: _fetch, store: _store);
+        var more = true;
+        await pullFeed(
+          fetch: (cursor) async {
+            final page = await _fetch(cursor);
+            more = page.hasMore;
+            return page;
+          },
+          store: _store,
+        );
+        if (!more) _lastSyncedAt = _clock();
         _failed = false;
         _error = null;
       } on ApiError catch (e) {

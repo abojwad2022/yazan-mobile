@@ -36,4 +36,7 @@ class CustomerPermissions {
   /// `customers.view_pii`: the server strips addresses, emails and phones from a response for
   /// anyone without it, so the screens say so instead of looking broken.
   bool get canViewPii => !known || _slugs.contains('customers.view_pii');
+
+  /// `reports.view`: the feed leaves out the lifetime spend for anyone without it.
+  bool get canViewSpend => !known || _slugs.contains('reports.view');
 }

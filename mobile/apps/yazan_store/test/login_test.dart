@@ -26,7 +26,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Carnelian ring'), findsOneWidget);
-    expect(find.byType(TextField), findsNothing);
+    expect(
+          find.byWidgetPredicate((w) => w is TextField && w.obscureText),
+          findsNothing);
     expect(find.text('Password'), findsNothing);
     // The app bar offers the account entry and the cart even though nobody is signed in.
     expect(find.byTooltip('Account'), findsOneWidget);

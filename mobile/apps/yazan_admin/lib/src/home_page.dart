@@ -191,6 +191,7 @@ class _HomePageState extends State<HomePage> {
           write: productWriter(widget.client),
           permissions: _products.permissions,
           loadPermissions: permissionsLoader(widget.client),
+          feedSyncedAt: _products.lastSyncedAt,
         ),
       ),
     );

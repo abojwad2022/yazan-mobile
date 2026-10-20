@@ -196,7 +196,9 @@ void main() {
         ..summaryFailure = const ApiError(status: 401, code: 'yazan_mobile_bad_refresh');
       var ended = false;
       await tester.pumpWidget(_page(api, onEnded: () => ended = true));
-      await tester.pumpAndSettle();
+      // The page keeps its spinner (nothing replaces it in this host), so settle cannot finish.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
       expect(ended, isTrue);
     });
 

@@ -24,6 +24,7 @@ class ProductDetailPage extends StatefulWidget {
     this.permissions = const ProductPermissions.unknown(),
     this.loadPermissions,
     this.newKey,
+    this.feedSyncedAt,
   });
 
   final ProductSummary summary;
@@ -33,6 +34,10 @@ class ProductDetailPage extends StatefulWidget {
   /// What the list already learned; checked again on this screen when still unknown.
   final ProductPermissions permissions;
   final PermissionsLoader? loadPermissions;
+
+  /// When the catalogue feed behind [summary] was last pulled to its end (null: unknown). With
+  /// `summary.version` it lets an edit skip a read when this screen's own read gave no version.
+  final DateTime? feedSyncedAt;
 
   /// Key factory for tests; defaults to `YazanApiClient.newIdempotencyKey`.
   final String Function()? newKey;
@@ -49,6 +54,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     permissions: widget.permissions,
     loadPermissions: widget.loadPermissions,
     newKey: widget.newKey,
+    feedVersion: widget.summary.version,
+    feedSyncedAt: widget.feedSyncedAt,
   );
 
   @override
@@ -226,12 +233,14 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         const SizedBox(height: 16),
         Text(l.productPriceLabel, style: t.titleSmall),
         const SizedBox(height: 4),
-        _line(l.productRegularPrice, priceText(regular), key: const ValueKey('regular-price')),
-        if (sale.isNotEmpty) _line(l.productSalePriceShort, priceText(sale), key: const ValueKey('sale-price')),
+        _line(l.productRegularPrice, priceText(regular, s.currency), key: const ValueKey('regular-price')),
+        if (sale.isNotEmpty)
+          _line(l.productSalePriceShort, priceText(sale, s.currency), key: const ValueKey('sale-price')),
         const SizedBox(height: 12),
         Text(l.productStockLabel, style: t.titleSmall),
         const SizedBox(height: 4),
         if (stock.isNotEmpty) Text(stock, key: const ValueKey('stock-text')),
+        if (s.variationAttributes.isNotEmpty) ..._variations(context, l, s.variationAttributes),
         const SizedBox(height: 16),
         if (_c.loading)
           const Center(child: CircularProgressIndicator())
@@ -246,6 +255,38 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           _editCard(context, l),
       ],
     );
+  }
+
+  /// The sizes (and other variation attributes) of a variable product. Read-only: they are
+  /// changed on the website, and the note says so.
+  List<Widget> _variations(BuildContext context, AppLocalizations l, List<VariationAttribute> attributes) {
+    final t = Theme.of(context).textTheme;
+    return [
+      const SizedBox(height: 12),
+      Text(l.productVariationsLabel, style: t.titleSmall),
+      const SizedBox(height: 4),
+      for (final a in attributes)
+        Padding(
+          key: ValueKey('variation-${a.key}'),
+          padding: const EdgeInsetsDirectional.only(bottom: 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(a.label),
+              const SizedBox(height: 4),
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  for (final o in a.options)
+                    Chip(label: Text(o.label), visualDensity: VisualDensity.compact),
+                ],
+              ),
+            ],
+          ),
+        ),
+      Text(l.productVariationsWebNote, key: const ValueKey('variations-note'), style: t.bodySmall),
+    ];
   }
 
   Widget _line(String label, String value, {Key? key}) {

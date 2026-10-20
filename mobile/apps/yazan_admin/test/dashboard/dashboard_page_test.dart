@@ -202,7 +202,7 @@ void main() {
     expect(server.daysAsked, hasLength(1));
 
     server.answer = bootstrapAnswer(processing: 9);
-    await tester.fling(find.byKey(const ValueKey('dash-list')), const Offset(0, 400), 1000);
+    await tester.drag(find.byKey(const ValueKey('dash-list')), const Offset(0, 300));
     await tester.pumpAndSettle();
     expect(server.daysAsked, hasLength(2));
     expect(_in('dash-processing', find.text('9')), findsOneWidget);

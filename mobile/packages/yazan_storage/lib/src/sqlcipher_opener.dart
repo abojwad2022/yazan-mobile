@@ -47,6 +47,8 @@ class SqlCipherOpener implements EncryptedDatabaseOpener {
 
 /// [SqlDatabase] over a sqflite (SQLCipher) [Database].
 class SqfliteSqlDatabase extends _SqfliteExecutor implements SqlDatabase {
+  // The Database is also kept as a typed field for transaction(), so this is not a plain super parameter.
+  // ignore: use_super_parameters
   SqfliteSqlDatabase(Database db)
       : _db = db,
         super(db);

@@ -37,6 +37,7 @@ void main() {
         {'access_token': 'yzm_a', 'refresh_token': 'yzr_b', 'expires_in': 900}));
     await tester.pumpWidget(YazanApp(client: _client(tokens), tokens: tokens));
     await tester.pumpAndSettle();
-    expect(find.text('Welcome'), findsOneWidget);
+    expect(find.text('YAZAN Admin'), findsOneWidget);
+    expect(find.text('Sign out'), findsOneWidget);
   });
 }

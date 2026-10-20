@@ -4,15 +4,19 @@ import 'package:yazan_api_client/yazan_api_client.dart';
 import 'package:yazan_design_system/yazan_design_system.dart';
 
 import '../l10n/app_localizations.dart';
+import 'catalogue/catalogue_repository.dart';
 import 'home_page.dart';
 import 'login_page.dart';
 
 /// The app shell. The client is injected so tests and previews never touch the network.
 class YazanApp extends StatefulWidget {
-  const YazanApp({super.key, required this.client, required this.tokens});
+  const YazanApp({super.key, required this.client, required this.tokens, this.repository});
 
   final YazanApiClient client;
   final TokenStore tokens;
+
+  /// Optional catalogue source (tests inject one; the app builds its own).
+  final CatalogueRepository? repository;
 
   @override
   State<YazanApp> createState() => _YazanAppState();
@@ -45,6 +49,7 @@ class _YazanAppState extends State<YazanApp> {
         null => const Scaffold(body: Center(child: CircularProgressIndicator())),
         true => HomePage(
             client: widget.client,
+            repository: widget.repository,
             onSignedOut: () => setState(() => _signedIn = false),
           ),
         false => LoginPage(

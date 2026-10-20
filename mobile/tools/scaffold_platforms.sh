@@ -9,7 +9,7 @@ if [ ! -d android ] || [ ! -d ios ]; then
   rm -f test/widget_test.dart
 fi
 # Application id / bundle id: com.yazanus.<short> (namespace stays as generated).
-f=$(ls android/app/build.gradle.kts android/app/build.gradle 2>/dev/null | head -1)
+if [ -f android/app/build.gradle.kts ]; then f=android/app/build.gradle.kts; else f=android/app/build.gradle; fi
 sed -i "s/applicationId = \"com.yazanus.$pkg\"/applicationId = \"com.yazanus.$short\"/; s/applicationId \"com.yazanus.$pkg\"/applicationId \"com.yazanus.$short\"/" "$f"
 sed -i "s/PRODUCT_BUNDLE_IDENTIFIER = com.yazanus.$pkg;/PRODUCT_BUNDLE_IDENTIFIER = com.yazanus.$short;/; s/PRODUCT_BUNDLE_IDENTIFIER = com.yazanus.$pkg.RunnerTests;/PRODUCT_BUNDLE_IDENTIFIER = com.yazanus.$short.RunnerTests;/" ios/Runner.xcodeproj/project.pbxproj
 # Release builds need the INTERNET permission in the main manifest too.

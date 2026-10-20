@@ -10,5 +10,20 @@
   "welcome": "Welcome",
   "signInFailed": "The details are not right. Please try again.",
   "tooManyAttempts": "Too many attempts. Please wait and try again.",
-  "genericError": "Something went wrong. Check your connection and try again."
+  "genericError": "Something went wrong. Check your connection and try again.",
+  "staleBadge": "Offline - showing saved items",
+  "soldOut": "Sold",
+  "inStock": "In stock",
+  "onlyLeft": "Only {count} left",
+  "@onlyLeft": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "emptyCatalogue": "No products to show yet. Pull down to refresh.",
+  "noImage": "No image",
+  "regularPrice": "Regular price",
+  "salePrice": "Sale price"
 }

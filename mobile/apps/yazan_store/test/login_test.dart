@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:yazan_api_client/yazan_api_client.dart';
 import 'package:yazan_domain/yazan_domain.dart';
 import 'package:yazan_store/src/app.dart';
+import 'package:yazan_store/src/catalogue/catalogue_repository.dart';
 
 YazanApiClient _client(TokenStore t) => YazanApiClient(
       baseUrl: 'https://example.test',
@@ -35,8 +36,12 @@ void main() {
     final tokens = MemoryTokenStore();
     await tokens.write(Session.fromJson(
         {'access_token': 'yzm_a', 'refresh_token': 'yzr_b', 'expires_in': 900}));
-    await tester.pumpWidget(YazanApp(client: _client(tokens), tokens: tokens));
+    final repo = CatalogueRepository(
+      fetch: (cursor) async =>
+          const DeltaPage(items: [], cursor: 'c', hasMore: false, initial: true),
+    );
+    await tester.pumpWidget(YazanApp(client: _client(tokens), tokens: tokens, repository: repo));
     await tester.pumpAndSettle();
-    expect(find.text('Welcome'), findsOneWidget);
+    expect(find.text('Sign out'), findsOneWidget);
   });
 }

@@ -10,5 +10,20 @@
   "welcome": "أهلًا بك",
   "signInFailed": "البيانات غير صحيحة. حاول مرة أخرى.",
   "tooManyAttempts": "محاولات كثيرة. انتظر قليلًا ثم حاول مجددًا.",
-  "genericError": "حدث خطأ. تأكد من الاتصال وحاول مرة أخرى."
+  "genericError": "حدث خطأ. تأكد من الاتصال وحاول مرة أخرى.",
+  "staleBadge": "غير متصل - عرض العناصر المحفوظة",
+  "soldOut": "نفدت الكمية",
+  "inStock": "متوفر",
+  "onlyLeft": "المتبقي {count} فقط",
+  "@onlyLeft": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "emptyCatalogue": "لا توجد منتجات للعرض بعد. اسحب للأسفل للتحديث.",
+  "noImage": "لا توجد صورة",
+  "regularPrice": "السعر الأصلي",
+  "salePrice": "سعر التخفيض"
 }

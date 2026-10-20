@@ -13,6 +13,8 @@ import 'catalogue/catalogue_repository.dart';
 import 'home_page.dart';
 import 'login_page.dart';
 import 'session_scope.dart';
+import 'storage/local_data.dart';
+import 'storage/storage_notice.dart';
 import 'wishlist/wishlist_api.dart';
 import 'wishlist/wishlist_controller.dart';
 import 'wishlist/wishlist_mirror.dart';
@@ -31,6 +33,7 @@ class YazanApp extends StatefulWidget {
     this.accountApi,
     this.wishlistApi,
     this.wishlistMirror,
+    this.localData,
   });
 
   final YazanApiClient client;
@@ -52,6 +55,11 @@ class YazanApp extends StatefulWidget {
   /// Keystore/Keychain-backed one so the list can be read offline after a restart.
   final WishlistMirror? wishlistMirror;
 
+  /// The durable, encrypted copy of the catalogue (and the place account data would live).
+  /// `main` opens it once and passes it in; without it the catalogue is kept in memory only, which
+  /// is what tests get.
+  final StoreLocalData? localData;
+
   @override
   State<YazanApp> createState() => _YazanAppState();
 }
@@ -63,10 +71,37 @@ class _YazanAppState extends State<YazanApp> {
   late final CartController _cart =
       CartController(widget.storeApi ?? StoreApi(widget.client.raw, fetchTokenFirst: true));
   late final AccountApi _account = widget.accountApi ?? ClientAccountApi(widget.client);
+  late final CatalogueRepository? _repository = _buildRepository();
   late final WishlistController _wishlist = WishlistController(
     api: widget.wishlistApi ?? ClientWishlistApi(widget.client),
     mirror: widget.wishlistMirror ?? MemoryWishlistMirror(),
   );
+
+  /// The injected repository, else one over the durable catalogue cache, else null (the home page
+  /// then builds a memory-only one). The catalogue is public, so its cache is shared by guest and
+  /// signed-in customer alike and is never wiped on sign-out.
+  CatalogueRepository? _buildRepository() {
+    final injected = widget.repository;
+    if (injected != null) return injected;
+    final data = widget.localData;
+    if (data == null) return null;
+    return CatalogueRepository(
+      fetch: (cursor) => widget.client.syncCatalog(cursor: cursor),
+      store: data.catalogue(),
+    );
+  }
+
+  /// Removes the signed-in customer's local data. Never blocks or fails the sign-out: a wipe that
+  /// did not finish is retried on the next start without a session.
+  Future<void> _forgetAccountData() async {
+    final data = widget.localData;
+    if (data == null) return;
+    try {
+      await data.forgetAccount();
+    } catch (_) {
+      // Left for the next start without a session.
+    }
+  }
 
   @override
   void initState() {
@@ -94,6 +129,9 @@ class _YazanAppState extends State<YazanApp> {
     if (stored != null) {
       setState(() => _signedIn = true);
       _wishlist.load();
+    } else {
+      // No session: nothing of a customer may be on the phone (finishes a wipe a crash cut short).
+      _forgetAccountData();
     }
     _cart.refresh();
   }
@@ -112,6 +150,7 @@ class _YazanAppState extends State<YazanApp> {
     if (mounted) setState(() => _signedIn = false);
     _cart.forget();
     _wishlist.forget();
+    _forgetAccountData();
   }
 
   /// Pushes the sign-in screen; resolves true once the customer has signed in.
@@ -161,10 +200,14 @@ class _YazanAppState extends State<YazanApp> {
               GlobalCupertinoLocalizations.delegate,
             ],
             supportedLocales: AppLocalizations.supportedLocales,
+            builder: (context, child) => StorageNotice(
+              show: widget.localData?.recreated ?? false,
+              child: child ?? const SizedBox.shrink(),
+            ),
             home: HomePage(
               client: widget.client,
               accountApi: _account,
-              repository: widget.repository,
+              repository: _repository,
               onSignOut: _signOut,
               onSessionEnded: _signedOutNow,
             ),

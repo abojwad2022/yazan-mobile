@@ -110,8 +110,72 @@
   "signInRequiredTitle": "Sign in to use this",
   "signInRequiredBody": "Favourites and your orders are kept in your account. You can browse and buy without one.",
   "notNow": "Not now",
+  "moreMenu": "More",
+  "verifyRing": "Verify a ring",
+  "verifyIntro": "Enter the serial number from your certificate or the box to check it against the YAZAN records.",
+  "serialLabel": "Serial number",
+  "serialHint": "YZ-925-2026-00012",
+  "serialTooShort": "Enter at least 3 letters or numbers.",
+  "checkSerial": "Check",
+  "scanQr": "Scan QR code",
+  "scanQrTitle": "Scan the QR code",
+  "scanQrHelp": "Point the camera at the QR code on your certificate.",
+  "scanNotSerial": "That code is not a YAZAN serial number. Try another code or type the serial.",
+  "scanUnavailable": "The camera is not available. Type the serial number instead.",
+  "verifyGenuineTitle": "Genuine YAZAN ring",
+  "verifyGenuineBody": "This serial is registered in the YAZAN records. The details below are as recorded by YAZAN.",
+  "verifyNotFoundTitle": "No ring found",
+  "verifyNotFoundBody": "YAZAN has no ring registered with the serial {serial}. Check the serial and try again, or contact us if you think this is a mistake.",
+  "@verifyNotFoundBody": {
+    "placeholders": {
+      "serial": {
+        "type": "String"
+      }
+    }
+  },
+  "verifyRateLimited": "Too many checks in a short time. Please wait a few minutes and try again.",
+  "certSerial": "Serial",
+  "certStone": "Stone",
+  "certColor": "Colour",
+  "certMetal": "Metal",
+  "certPurity": "Silver purity",
+  "certOrigin": "Origin",
+  "certShape": "Shape",
+  "certCarat": "Carat",
+  "certWearer": "For",
+  "certCollection": "Collection",
+  "certYear": "Certified",
+  "certOneOfOne": "One of one",
+  "rewards": "Rewards",
+  "rewardsBalance": "Your balance",
+  "pointsDefault": "Points",
+  "rewardsTier": "Tier",
+  "rewardsNoTier": "No tier yet",
+  "rewardsNextLevel": "{remaining} {label} to go until {name}",
+  "@rewardsNextLevel": {
+    "placeholders": {
+      "remaining": {
+        "type": "int"
+      },
+      "label": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "rewardsReferral": "Your referral code",
+  "rewardsReferralHelp": "Share this code with friends.",
+  "rewardsReferralLink": "Referral link",
+  "rewardsCopyCode": "Copy code",
+  "rewardsCopyLink": "Copy link",
+  "rewardsCopied": "Copied",
+  "rewardsUnavailable": "Rewards are not available right now.",
+  "rewardsReferralFailed": "Your referral code could not be loaded.",
   "signInOptional": "Signing in is optional. You can browse and order without an account.",
   "signedInTapAgain": "You are signed in. Tap the heart again to save this ring.",
+  "storageReset": "Saved data on this phone could not be read, so it was reset. The shop will download again.",
   "sizeLabel": "Size",
   "chooseOption": "Choose an option",
   "chooseOptionFirst": "Please choose a size first."

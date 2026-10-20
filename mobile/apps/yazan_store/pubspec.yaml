@@ -17,6 +17,7 @@ dependencies:
   yazan_api_client:
   yazan_design_system:
   yazan_offline_sync:
+  yazan_storage:
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -110,8 +110,72 @@
   "signInRequiredTitle": "سجّل الدخول لاستخدام هذه الميزة",
   "signInRequiredBody": "المفضلة وطلباتك محفوظة في حسابك. يمكنك التصفح والشراء بدون حساب.",
   "notNow": "ليس الآن",
+  "moreMenu": "المزيد",
+  "verifyRing": "التحقق من خاتم",
+  "verifyIntro": "أدخل الرقم التسلسلي من الشهادة أو العلبة للتحقق منه في سجلات يزن.",
+  "serialLabel": "الرقم التسلسلي",
+  "serialHint": "YZ-925-2026-00012",
+  "serialTooShort": "أدخل 3 أحرف أو أرقام على الأقل.",
+  "checkSerial": "تحقق",
+  "scanQr": "مسح رمز QR",
+  "scanQrTitle": "امسح رمز QR",
+  "scanQrHelp": "وجّه الكاميرا نحو رمز QR على شهادتك.",
+  "scanNotSerial": "هذا الرمز ليس رقمًا تسلسليًا من يزن. جرّب رمزًا آخر أو اكتب الرقم.",
+  "scanUnavailable": "الكاميرا غير متاحة. اكتب الرقم التسلسلي بدلًا من ذلك.",
+  "verifyGenuineTitle": "خاتم أصلي من يزن",
+  "verifyGenuineBody": "هذا الرقم التسلسلي مسجَّل في سجلات يزن. التفاصيل أدناه كما سجّلتها يزن.",
+  "verifyNotFoundTitle": "لم يُعثر على خاتم",
+  "verifyNotFoundBody": "لا يوجد في سجلات يزن خاتم بالرقم التسلسلي {serial}. تأكد من الرقم وحاول مرة أخرى، أو تواصل معنا إن كنت تظن أن هناك خطأ.",
+  "@verifyNotFoundBody": {
+    "placeholders": {
+      "serial": {
+        "type": "String"
+      }
+    }
+  },
+  "verifyRateLimited": "محاولات تحقق كثيرة في وقت قصير. انتظر بضع دقائق ثم حاول مجددًا.",
+  "certSerial": "الرقم التسلسلي",
+  "certStone": "الحجر",
+  "certColor": "اللون",
+  "certMetal": "المعدن",
+  "certPurity": "عيار الفضة",
+  "certOrigin": "المنشأ",
+  "certShape": "الشكل",
+  "certCarat": "القيراط",
+  "certWearer": "لـ",
+  "certCollection": "المجموعة",
+  "certYear": "سنة التوثيق",
+  "certOneOfOne": "قطعة وحيدة",
+  "rewards": "المكافآت",
+  "rewardsBalance": "رصيدك",
+  "pointsDefault": "النقاط",
+  "rewardsTier": "المستوى",
+  "rewardsNoTier": "لا مستوى بعد",
+  "rewardsNextLevel": "تبقّى {remaining} {label} للوصول إلى {name}",
+  "@rewardsNextLevel": {
+    "placeholders": {
+      "remaining": {
+        "type": "int"
+      },
+      "label": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "rewardsReferral": "رمز الإحالة الخاص بك",
+  "rewardsReferralHelp": "شارك هذا الرمز مع أصدقائك.",
+  "rewardsReferralLink": "رابط الإحالة",
+  "rewardsCopyCode": "نسخ الرمز",
+  "rewardsCopyLink": "نسخ الرابط",
+  "rewardsCopied": "تم النسخ",
+  "rewardsUnavailable": "المكافآت غير متاحة حاليًا.",
+  "rewardsReferralFailed": "تعذّر تحميل رمز الإحالة الخاص بك.",
   "signInOptional": "تسجيل الدخول اختياري. يمكنك التصفح والطلب بدون حساب.",
   "signedInTapAgain": "تم تسجيل دخولك. اضغط على القلب مرة أخرى لحفظ هذا الخاتم.",
+  "storageReset": "تعذّرت قراءة البيانات المحفوظة على هذا الهاتف فتمت إعادة ضبطها. سيُحمَّل المتجر من جديد.",
   "sizeLabel": "المقاس",
   "chooseOption": "اختر خيارًا",
   "chooseOptionFirst": "اختر المقاس أولًا."

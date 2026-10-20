@@ -10,6 +10,7 @@ import 'cart/cart_scope.dart';
 import 'catalogue/catalogue_list_page.dart';
 import 'catalogue/catalogue_repository.dart';
 import 'catalogue/product.dart';
+import 'extras/extras_menu.dart';
 import 'session_scope.dart';
 import 'wishlist/wishlist_controller.dart';
 import 'wishlist/wishlist_page.dart';
@@ -148,6 +149,7 @@ class _HomePageState extends State<HomePage> {
                 child: const Icon(Icons.shopping_bag_outlined),
               ),
             ),
+          ExtrasMenuButton(client: widget.client, onSessionEnded: _sessionEnded),
           IconButton(
             tooltip: l.account,
             onPressed: _openAccount,

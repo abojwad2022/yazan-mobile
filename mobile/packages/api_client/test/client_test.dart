@@ -191,4 +191,51 @@ void main() {
     expect(r.status, 200);
     expect(a.seen.last.headers['Authorization'], 'Bearer yzm_new');
   });
+
+  group('public reads without a session', () {
+    Map<String, dynamic> feed() => {'items': <Object>[], 'cursor': 'c1', 'has_more': false, 'initial': true};
+
+    test('syncCatalog works signed out: no bearer, no refresh, no throw', () async {
+      final store = MemoryTokenStore();
+      final a = FakeAdapter((o) => (200, feed(), {}));
+      final page = await make(a, store).syncCatalog();
+      expect(page.cursor, 'c1');
+      expect(a.seen.single.path, endsWith('/yazan-mobile/v1/sync/catalog'));
+      expect(a.seen.single.headers.containsKey('Authorization'), isFalse);
+    });
+
+    test('a signed-in session still sends its bearer on the catalogue', () async {
+      final store = MemoryTokenStore();
+      await store.write(Session.fromJson(pair('yzm_1', 'yzr_1')));
+      final a = FakeAdapter((o) => (200, feed(), {}));
+      await make(a, store).syncCatalog();
+      expect(a.seen.single.headers['Authorization'], 'Bearer yzm_1');
+    });
+
+    test('a dead session is dropped and the catalogue is read again as a guest', () async {
+      final store = MemoryTokenStore();
+      await store.write(Session.fromJson(pair('yzm_old', 'yzr_old')));
+      var signedOut = 0;
+      final a = FakeAdapter((o) {
+        if (o.path.endsWith('/auth/refresh')) {
+          return (401, {'code': 'yazan_mobile_bad_refresh'}, {});
+        }
+        return o.headers.containsKey('Authorization')
+            ? (401, {'code': 'yazan_mobile_bad_token'}, {})
+            : (200, feed(), {});
+      });
+      final page = await make(a, store, onOut: () => signedOut++).syncCatalog();
+      expect(page.cursor, 'c1');
+      expect(await store.read(), isNull);
+      expect(signedOut, 1);
+      expect(a.seen.last.headers.containsKey('Authorization'), isFalse);
+    });
+
+    test('other reads still need a session', () async {
+      final store = MemoryTokenStore();
+      final a = FakeAdapter((o) => (200, {'ok': true}, {}));
+      await expectLater(make(a, store).getJson('/yazan-mobile/v1/me'), throwsA(isA<ApiError>()));
+      expect(a.seen, isEmpty);
+    });
+  });
 }

@@ -131,6 +131,67 @@ void main() {
       expect([for (final p in await repo.products()) p.name], ['Keep']);
     });
   });
+
+  group('variations (ring sizes)', () {
+    Map<String, dynamic> variable(List<Object?> variations) =>
+        _record(21, 'Signet', extra: {'type': 'variable', 'variations': variations});
+
+    test('parses the feed: id, attributes without the attribute_ prefix, price and stock', () {
+      final p = Product.fromRecord(variable([
+        {
+          'id': 211,
+          'attributes': {'attribute_pa_size': '7'},
+          'price': '120.00',
+          'stock_status': 'instock',
+          'stock': 3,
+        },
+        {
+          'id': 213,
+          'attributes': {'pa_size': '9'},
+          'price': '',
+          'stock_status': 'outofstock',
+          'stock': null,
+        },
+      ]));
+      expect(p.type, 'variable');
+      expect(p.isVariable, isTrue);
+      expect(p.variations, hasLength(2));
+      final v = p.variations.first;
+      expect(v.id, 211);
+      expect(v.attributes, {'pa_size': '7'});
+      expect(v.price, const Money(12000));
+      expect(v.stock, 3);
+      expect(v.isSoldOut, isFalse);
+      expect(v.label, '7');
+      expect(v.cartAttributes, [(attribute: 'pa_size', value: '7')]);
+      expect(p.variations[1].isSoldOut, isTrue);
+      expect(p.variations[1].price, isNull);
+    });
+
+    test('a simple product has no variations and is not variable', () {
+      final p = Product.fromRecord(_record(5, 'Plain'));
+      expect(p.isVariable, isFalse);
+      expect(p.variations, isEmpty);
+    });
+
+    test('only variations with every attribute set are offered', () {
+      final p = Product.fromRecord(variable([
+        {'id': 1, 'attributes': {'pa_size': '7'}},
+        {'id': 2, 'attributes': {'pa_size': ''}}, // "any size": the feed gives no options for it
+        {'id': 3, 'attributes': <String, dynamic>{}},
+        {'id': 0, 'attributes': {'pa_size': '8'}},
+        'junk',
+      ]));
+      expect([for (final v in p.selectableVariations) v.id], [1]);
+    });
+
+    test('several attributes make one combined label', () {
+      final p = Product.fromRecord(variable([
+        {'id': 1, 'attributes': {'pa_metal': 'silver', 'pa_size': '7'}},
+      ]));
+      expect(p.variations.first.label, 'silver / 7');
+    });
+  });
 }
 
 /// A non-memory store: only the [FeedStore] interface is available to the repository.

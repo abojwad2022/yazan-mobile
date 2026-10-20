@@ -17,11 +17,10 @@ Future<void> main() async {
     deviceId: await tokens.deviceId(),
     tokens: tokens,
   );
-  // Cart and checkout go through the WooCommerce Store API. The package client cannot yet send or
-  // read custom headers, so this fallback has no Cart-Token: it relies on the signed-in customer's
-  // server-side cart (see clientStoreTransport). Once the client exposes a raw request, swap in:
-  //   StoreApi(client.raw, tokens: SecureCartTokenStore())
-  final storeApi = StoreApi(client.raw, tokens: SecureCartTokenStore());
+  // Cart and checkout go through the WooCommerce Store API with a Cart-Token, so they work for a
+  // guest with no account. `fetchTokenFirst` makes the first write read the cart (and so get a
+  // token) when the app was opened offline.
+  final storeApi = StoreApi(client.raw, tokens: SecureCartTokenStore(), fetchTokenFirst: true);
   runApp(YazanApp(
     client: client,
     tokens: tokens,

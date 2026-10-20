@@ -108,6 +108,13 @@ class _LoginPageState extends State<LoginPage> {
               onPressed: _busy ? null : _submit,
               child: Text(_challenge == null ? l.signIn : l.verify),
             ),
+            const SizedBox(height: 16),
+            // Signing in is optional: the shop, cart and checkout work without an account.
+            Text(
+              l.signInOptional,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
           ],
         ),
       ),

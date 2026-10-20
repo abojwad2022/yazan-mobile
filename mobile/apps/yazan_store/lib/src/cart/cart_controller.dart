@@ -26,8 +26,13 @@ class CartController extends ChangeNotifier {
 
   Future<bool> refresh() => _run(api.getCart);
 
-  Future<bool> add(int productId, {int quantity = 1}) =>
-      _run(() => api.addItem(productId, quantity: quantity));
+  /// Adds a product; for a variation pass its id and attributes (see [StoreApi.addItem]).
+  Future<bool> add(
+    int productId, {
+    int quantity = 1,
+    List<({String attribute, String value})> variation = const [],
+  }) =>
+      _run(() => api.addItem(productId, quantity: quantity, variation: variation));
 
   Future<bool> setQuantity(CartItem item, int quantity) =>
       quantity <= 0 ? remove(item) : _run(() => api.updateItem(item.key, quantity));

@@ -3,7 +3,7 @@ import 'package:yazan_domain/yazan_domain.dart';
 import '../cart/cart.dart' show plainText;
 import '../json_read.dart';
 
-/// "USD 90.00" from the server's decimal string, or "USD <raw>" when it is not a plain amount.
+/// "USD 90.00" from the server's decimal string, or "USD" and the raw text when it is not a plain amount.
 /// Empty when the server sent nothing. Display only: the server decided every figure.
 String amountText(Object? value, String currency) {
   if (value == null) return '';

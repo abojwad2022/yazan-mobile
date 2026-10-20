@@ -4,11 +4,14 @@ import 'package:yazan_api_client/yazan_api_client.dart';
 import '../l10n/app_localizations.dart';
 import 'account/account_api.dart';
 import 'account/account_page.dart';
+import 'account/orders_page.dart';
 import 'cart/cart_page.dart';
 import 'cart/cart_scope.dart';
 import 'catalogue/catalogue_list_page.dart';
 import 'catalogue/catalogue_repository.dart';
 import 'catalogue/product.dart';
+import 'session_scope.dart';
+import 'wishlist/wishlist_controller.dart';
 import 'wishlist/wishlist_page.dart';
 import 'wishlist/wishlist_scope.dart';
 
@@ -27,10 +30,10 @@ class HomePage extends StatefulWidget {
   /// The customer's account routes (tests inject a fake).
   final AccountApi accountApi;
 
-  /// Signs out on the server and the phone, then shows the sign-in form.
+  /// Signs out on the server and the phone; the app goes on as a guest.
   final Future<void> Function() onSignOut;
 
-  /// The server says the session is over: show the sign-in form.
+  /// The server says the session is over: carry on as a guest.
   final VoidCallback onSessionEnded;
 
   /// Injected by tests; the app builds one over the live client.
@@ -52,11 +55,72 @@ class _HomePageState extends State<HomePage> {
     return null;
   }
 
+  /// The server ended the session: drop to guest browsing and say so.
+  void _sessionEnded() {
+    if (!mounted) {
+      widget.onSessionEnded();
+      return;
+    }
+    final messenger = ScaffoldMessenger.of(context);
+    final message = AppLocalizations.of(context).sessionEnded;
+    widget.onSessionEnded();
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  /// Favourites need an account: a guest is asked to sign in first.
+  Future<void> _openFavourites(WishlistController wishlist) async {
+    if (!await requireSignIn(context)) return;
+    if (!mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => WishlistPage(
+          controller: wishlist,
+          findProduct: _findProduct,
+          onSessionEnded: _sessionEnded,
+        ),
+      ),
+    );
+  }
+
+  /// "My orders" needs an account: a guest is asked to sign in first.
+  Future<void> _openOrders() async {
+    if (!await requireSignIn(context)) return;
+    if (!mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => OrdersPage(api: widget.accountApi, onSessionEnded: _sessionEnded),
+      ),
+    );
+  }
+
+  /// The account entry: the account page when signed in, the (optional) sign-in screen otherwise.
+  Future<void> _openAccount() async {
+    final session = SessionScope.maybeRead(context);
+    if (session != null && !session.signedIn) {
+      await session.openSignIn(context);
+      return;
+    }
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => AccountPage(
+          api: widget.accountApi,
+          findProduct: _findProduct,
+          onSignOut: widget.onSignOut,
+          onSessionEnded: _sessionEnded,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final cart = CartScope.maybeOf(context);
     final wishlist = WishlistScope.maybeOf(context);
+    // Rebuilds this bar when the customer signs in or out.
+    SessionScope.maybeOf(context);
     return Scaffold(
       appBar: AppBar(
         title: Text(l.appTitle),
@@ -64,17 +128,14 @@ class _HomePageState extends State<HomePage> {
           if (wishlist != null)
             IconButton(
               tooltip: l.favourites,
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => WishlistPage(
-                    controller: wishlist,
-                    findProduct: _findProduct,
-                    onSessionEnded: widget.onSessionEnded,
-                  ),
-                ),
-              ),
+              onPressed: () => _openFavourites(wishlist),
               icon: const Icon(Icons.favorite_border),
             ),
+          IconButton(
+            tooltip: l.myOrders,
+            onPressed: _openOrders,
+            icon: const Icon(Icons.receipt_long_outlined),
+          ),
           if (cart != null)
             IconButton(
               tooltip: l.cart,
@@ -89,16 +150,7 @@ class _HomePageState extends State<HomePage> {
             ),
           IconButton(
             tooltip: l.account,
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => AccountPage(
-                  api: widget.accountApi,
-                  findProduct: _findProduct,
-                  onSignOut: widget.onSignOut,
-                  onSessionEnded: widget.onSessionEnded,
-                ),
-              ),
-            ),
+            onPressed: _openAccount,
             icon: const Icon(Icons.person_outline),
           ),
         ],

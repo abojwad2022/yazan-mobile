@@ -111,6 +111,7 @@ class CartItem {
     this.minQuantity = 1,
     this.maxQuantity,
     this.editable = true,
+    this.options = const [],
   });
 
   factory CartItem.fromJson(Map<String, dynamic> j) {
@@ -124,6 +125,17 @@ class CartItem {
       final thumb = _map(images.first)['thumbnail'];
       if (thumb is String && thumb.isNotEmpty) image = thumb;
     }
+    final options = <String>[];
+    final rawVariation = j['variation'];
+    if (rawVariation is List) {
+      for (final v in rawVariation) {
+        final m = _map(v);
+        final attribute = plainText(_str(m['attribute']));
+        final value = plainText(_str(m['value']));
+        if (value.isEmpty) continue;
+        options.add(attribute.isEmpty ? value : '$attribute: $value');
+      }
+    }
     return CartItem(
       key: _str(j['key']),
       id: _int(j['id']) ?? 0,
@@ -136,6 +148,7 @@ class CartItem {
       minQuantity: _int(limits['minimum']) ?? 1,
       maxQuantity: _int(limits['maximum']),
       editable: limits['editable'] != false,
+      options: options,
     );
   }
 
@@ -154,6 +167,9 @@ class CartItem {
   final int minQuantity;
   final int? maxQuantity;
   final bool editable;
+
+  /// The chosen options of a variation line as the server words them, e.g. `Size: 7`.
+  final List<String> options;
 
   bool get canIncrease {
     final max = maxQuantity;

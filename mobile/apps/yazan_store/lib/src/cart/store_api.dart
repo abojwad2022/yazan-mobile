@@ -86,13 +86,23 @@ class MemoryCartTokenStore implements CartTokenStore {
 ///   5xx, 409) and on a double tap (single-flight), replaced only after success or a definite
 ///   rejection, so a retry can never create a second order.
 class StoreApi {
-  StoreApi(this._transport, {CartTokenStore? tokens, String Function()? newKey})
-      : _tokens = tokens ?? MemoryCartTokenStore(),
-        _newKey = newKey ?? YazanApiClient.newIdempotencyKey;
+  StoreApi(
+    this._transport, {
+    CartTokenStore? tokens,
+    String Function()? newKey,
+    bool fetchTokenFirst = false,
+  })  : _tokens = tokens ?? MemoryCartTokenStore(),
+        _newKey = newKey ?? YazanApiClient.newIdempotencyKey,
+        _fetchTokenFirst = fetchTokenFirst;
 
   final StoreTransport _transport;
   final CartTokenStore _tokens;
   final String Function() _newKey;
+
+  /// A guest has no session to vouch for a write, so the Store API wants either a nonce or a
+  /// `Cart-Token`. With this on, a write made before any token is held first reads the cart (which
+  /// hands out a token), so the very first "add to cart" works for a guest who opened the app offline.
+  final bool _fetchTokenFirst;
 
   static const _base = '/wc/store/v1';
 
@@ -103,8 +113,22 @@ class StoreApi {
 
   Future<Cart> getCart() async => Cart.fromJson(await _call('GET', '/cart'));
 
-  Future<Cart> addItem(int productId, {int quantity = 1}) async => Cart.fromJson(
-        await _call('POST', '/cart/add-item', body: {'id': productId, 'quantity': quantity}),
+  /// Adds a product, or a variation of a variable product: pass the variation's id as [productId]
+  /// and its attributes (attribute key and value) as [variation].
+  Future<Cart> addItem(
+    int productId, {
+    int quantity = 1,
+    List<({String attribute, String value})> variation = const [],
+  }) async =>
+      Cart.fromJson(
+        await _call('POST', '/cart/add-item', body: {
+          'id': productId,
+          'quantity': quantity,
+          if (variation.isNotEmpty)
+            'variation': [
+              for (final v in variation) {'attribute': v.attribute, 'value': v.value},
+            ],
+        }),
       );
 
   Future<Cart> updateItem(String key, int quantity) async => Cart.fromJson(
@@ -162,6 +186,13 @@ class StoreApi {
     Object? body,
     Map<String, String> headers = const {},
   }) async {
+    if (_fetchTokenFirst && method != 'GET' && await _token() == null) {
+      try {
+        await _call('GET', '/cart');
+      } on StoreApiException {
+        // The write below reports the real problem (offline, server error...).
+      }
+    }
     final token = await _token();
     final res = await _send(method, '$_base$path', body: body, headers: {
       if (token != null) 'Cart-Token': token,

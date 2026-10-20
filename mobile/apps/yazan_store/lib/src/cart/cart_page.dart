@@ -180,6 +180,10 @@ class _CartItemRow extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.titleSmall,
                 ),
+                if (item.options.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(item.options.join(' / '), style: theme.textTheme.bodySmall),
+                ],
                 const SizedBox(height: 4),
                 Text(item.lineTotal.toString(), style: theme.textTheme.bodyMedium),
               ],

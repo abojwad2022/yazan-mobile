@@ -227,4 +227,58 @@ void main() {
       expect(orders[0].orderId, orders[1].orderId);
     });
   });
+
+  group('StoreApi for a guest and for variations', () {
+    test('addItem sends the variation id and its attributes only when there are some', () async {
+      final fake = FakeTransport((r) => ok(storeCart(images: false)));
+      final api = StoreApi(fake.call);
+      await api.addItem(212, variation: const [(attribute: 'pa_size', value: '8')]);
+      expect(fake.requests.single.body, {
+        'id': 212,
+        'quantity': 1,
+        'variation': [
+          {'attribute': 'pa_size', 'value': '8'},
+        ],
+      });
+      await api.addItem(13, quantity: 2);
+      expect(fake.requests.last.body, {'id': 13, 'quantity': 2});
+    });
+
+    test('a guest write before any token first reads the cart to get one', () async {
+      final tokens = MemoryCartTokenStore();
+      final fake = FakeTransport((r) => ok(storeCart(images: false), headers: {'Cart-Token': 'tok-9'}));
+      final api = StoreApi(fake.call, tokens: tokens, fetchTokenFirst: true);
+      await api.addItem(13);
+      expect([for (final r in fake.requests) '${r.method} ${r.path}'],
+          ['GET /wc/store/v1/cart', 'POST /wc/store/v1/cart/add-item']);
+      expect(fake.requests.first.headers.containsKey('Cart-Token'), isFalse);
+      expect(fake.requests.last.headers['Cart-Token'], 'tok-9');
+      // With a token held, the next write goes straight through.
+      await api.addItem(13);
+      expect(fake.requests, hasLength(3));
+    });
+
+    test('if reading the cart first fails, the write still reports its own result', () async {
+      final fake = FakeTransport((r) => throw Exception('offline'));
+      final api = StoreApi(fake.call, fetchTokenFirst: true);
+      await expectLater(
+        api.addItem(13),
+        throwsA(isA<StoreApiException>().having((e) => e.isNetwork, 'network', isTrue)),
+      );
+      expect(fake.requests, hasLength(2));
+    });
+
+    test('a variation line carries its chosen options for display', () {
+      final json = storeCart(images: false);
+      final first = (json['items'] as List<dynamic>).first as Map<String, dynamic>;
+      first['variation'] = [
+        {'raw_attribute': 'attribute_pa_size', 'attribute': 'Size', 'value': '7'},
+        {'attribute': 'Metal', 'value': 'Silver &amp; gold'},
+        {'attribute': 'Empty', 'value': ''},
+      ];
+      final cart = Cart.fromJson(json);
+      expect(cart.items.first.options, ['Size: 7', 'Metal: Silver & gold']);
+      expect(cart.items[1].options, isEmpty);
+    });
+  });
 }

@@ -1,4 +1,4 @@
-/// Tolerant readers for server JSON: a wrong or missing field becomes an empty value, never a crash.
+// Tolerant readers for server JSON: a wrong or missing field becomes an empty value, never a crash.
 
 Map<String, dynamic> asMap(Object? v) {
   if (v is Map<String, dynamic>) return v;

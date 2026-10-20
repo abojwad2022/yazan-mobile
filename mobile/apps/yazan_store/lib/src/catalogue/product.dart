@@ -8,6 +8,61 @@ class ProductImage {
   final String medium;
 }
 
+/// One purchasable variation of a variable product (for rings: one size), from the feed's
+/// `variations` list: `{id, attributes, price, stock_status, stock}`.
+///
+/// `attributes` maps the attribute key (`size` or `pa_size`, no `attribute_` prefix) to the chosen
+/// value as the server stores it (a slug such as `7`). The feed carries no display labels, so the
+/// value is shown as it is.
+class ProductVariation {
+  const ProductVariation({
+    required this.id,
+    this.attributes = const {},
+    this.price,
+    this.stockStatus = 'instock',
+    this.stock,
+  });
+
+  factory ProductVariation.fromRecord(Map<String, dynamic> r) {
+    final raw = r['attributes'];
+    final attributes = <String, String>{};
+    if (raw is Map) {
+      for (final e in raw.entries) {
+        final key = '${e.key}'.replaceFirst(RegExp(r'^attribute_'), '');
+        final value = e.value;
+        if (key.isNotEmpty && value is String) attributes[key] = value;
+      }
+    }
+    return ProductVariation(
+      id: Product._asInt(r['id']) ?? 0,
+      attributes: attributes,
+      price: Product._money(r['price']),
+      stockStatus: Product._asString(r['stock_status'], 'instock'),
+      stock: Product._asInt(r['stock']),
+    );
+  }
+
+  final int id;
+  final Map<String, String> attributes;
+  final Money? price;
+  final String stockStatus;
+  final int? stock;
+
+  bool get isSoldOut => stockStatus == 'outofstock';
+
+  /// True when every attribute has a value. A variation with an "any" attribute (empty value)
+  /// would need the customer's own pick, which the feed gives no options for, so it is not offered.
+  bool get isSelectable => id > 0 && attributes.isNotEmpty && !attributes.values.any((v) => v.isEmpty);
+
+  /// What the picker shows: the values in key order, e.g. `7` or `Silver / 7`.
+  String get label => attributes.values.join(' / ');
+
+  /// The `variation` array the Store API's add-item route expects.
+  List<({String attribute, String value})> get cartAttributes => [
+        for (final e in attributes.entries) (attribute: e.key, value: e.value),
+      ];
+}
+
 /// A catalogue product parsed from a `/sync/catalog` record. Tolerant of missing fields.
 class Product {
   const Product({
@@ -22,11 +77,14 @@ class Product {
     this.summary = '',
     this.images = const [],
     this.categories = const [],
+    this.type = 'simple',
+    this.variations = const [],
   });
 
   factory Product.fromRecord(Map<String, dynamic> r) {
     final rawImages = r['images'];
     final rawCategories = r['categories'];
+    final rawVariations = r['variations'];
     return Product(
       id: _asInt(r['id']) ?? 0,
       name: _asString(r['name']),
@@ -51,6 +109,12 @@ class Product {
           for (final c in rawCategories)
             if (_asInt(c) != null) _asInt(c)!,
       ],
+      type: _asString(r['type'], 'simple'),
+      variations: [
+        if (rawVariations is List)
+          for (final v in rawVariations)
+            if (v is Map) ProductVariation.fromRecord(Map<String, dynamic>.from(v)),
+      ],
     );
   }
 
@@ -65,6 +129,19 @@ class Product {
   final String summary;
   final List<ProductImage> images;
   final List<int> categories;
+
+  /// WooCommerce product type (`simple`, `variable`, ...).
+  final String type;
+
+  /// Purchasable variations; only filled for variable products.
+  final List<ProductVariation> variations;
+
+  /// A variable product (rings with sizes) is bought by choosing one of its variations.
+  bool get isVariable => type == 'variable' || variations.isNotEmpty;
+
+  /// The variations a customer can pick from (complete attributes only).
+  List<ProductVariation> get selectableVariations =>
+      [for (final v in variations) if (v.isSelectable) v];
 
   bool get isSoldOut => stockStatus == 'outofstock';
 

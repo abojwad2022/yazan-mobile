@@ -121,8 +121,13 @@ class YazanApiClient {
 
   // ---- requests ------------------------------------------------------------
 
-  Future<Map<String, dynamic>> getJson(String path, {Map<String, dynamic>? query}) =>
-      _send<Map<String, dynamic>>('GET', path, query: query);
+  /// GET. With [optionalAuth] the call also works signed out: the bearer is sent when a session
+  /// exists, nothing is sent (and nothing is thrown) when there is none, and a session that can no
+  /// longer be refreshed is dropped and the call is retried once as a guest. For public reads such
+  /// as the store catalogue.
+  Future<Map<String, dynamic>> getJson(String path,
+          {Map<String, dynamic>? query, bool optionalAuth = false}) =>
+      _send<Map<String, dynamic>>('GET', path, query: query, optionalAuth: optionalAuth);
 
   /// GET that also returns the record's version (the `ETag`, quotes stripped), for a later If-Match.
   Future<({Map<String, dynamic> body, String? version})> getJsonWithVersion(String path,
@@ -214,8 +219,10 @@ class YazanApiClient {
     return (status: status, body: decoded, headers: out);
   }
 
+  /// The catalogue feed is public (store catalogue only), so it works without a session.
   Future<DeltaPage> syncCatalog({String cursor = '', int limit = 50}) async =>
-      DeltaPage.fromJson(await getJson('$_ns/sync/catalog', query: {'cursor': cursor, 'limit': limit}));
+      DeltaPage.fromJson(await getJson('$_ns/sync/catalog',
+          query: {'cursor': cursor, 'limit': limit}, optionalAuth: true));
 
   Future<T> _send<T>(
     String method,
@@ -224,12 +231,13 @@ class YazanApiClient {
     Map<String, dynamic>? query,
     Map<String, String>? headers,
     bool auth = true,
+    bool optionalAuth = false,
     bool retried = false,
     void Function(String? etag)? onEtag,
   }) async {
     final extra = <String, String>{...?headers};
     final session = auth ? await tokens.read() : null;
-    if (auth && session == null) {
+    if (auth && session == null && !optionalAuth) {
       throw const ApiError(status: 401, code: 'yazan_mobile_bad_refresh');
     }
     if (session != null) {
@@ -283,10 +291,21 @@ class YazanApiClient {
     }
 
     final error = ApiError.fromJson(status, decoded);
-    if (auth && !retried && error.action == ErrorAction.refreshThenRetry) {
-      await _refresh(session!);
+    if (auth && session != null && !retried && error.action == ErrorAction.refreshThenRetry) {
+      try {
+        await _refresh(session);
+      } on ApiError {
+        // A public read carries on as a guest once the dead session has been cleared.
+        if (!optionalAuth) rethrow;
+      }
       return _send<T>(method, path,
-          data: data, query: query, headers: headers, auth: auth, retried: true, onEtag: onEtag);
+          data: data,
+          query: query,
+          headers: headers,
+          auth: auth,
+          optionalAuth: optionalAuth,
+          retried: true,
+          onEtag: onEtag);
     }
     throw error;
   }

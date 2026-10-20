@@ -4,57 +4,16 @@ import 'package:yazan_api_client/yazan_api_client.dart';
 import 'package:yazan_domain/yazan_domain.dart';
 import 'package:yazan_store/src/app.dart';
 import 'package:yazan_store/src/cart/store_api.dart';
-import 'package:yazan_store/src/catalogue/catalogue_repository.dart';
 import 'package:yazan_store/src/wishlist/wishlist_mirror.dart';
 
 import 'fixtures/account_fakes.dart';
+import 'fixtures/catalogue_fixtures.dart';
+import 'fixtures/scripted_client.dart';
 import 'fixtures/store_cart.dart';
-
-/// A client that never touches the network: sign-in and sign-out are scripted.
-class _ScriptedClient extends YazanApiClient {
-  _ScriptedClient(TokenStore t)
-      : super(
-          baseUrl: 'https://example.test',
-          scope: AppScope.store,
-          deviceId: 'test-device',
-          tokens: t,
-        );
-
-  ApiError? loginError;
-  bool loggedOut = false;
-  final List<String> logins = [];
-
-  @override
-  Future<LoginResult> login({
-    required String login,
-    required String password,
-    String? deviceName,
-    String platform = 'unknown',
-  }) async {
-    logins.add(login);
-    final error = loginError;
-    if (error != null) throw error;
-    final session = Session.fromJson(
-        {'access_token': 'yzm_a', 'refresh_token': 'yzr_b', 'expires_in': 900});
-    await tokens.write(session);
-    return LoginResult.session(session);
-  }
-
-  @override
-  Future<void> logout() async {
-    loggedOut = true;
-    await tokens.clear();
-  }
-}
-
-CatalogueRepository _emptyCatalogue() => CatalogueRepository(
-      fetch: (cursor) async =>
-          const DeltaPage(items: [], cursor: 'c', hasMore: false, initial: true),
-    );
 
 Future<void> _pump(
   WidgetTester tester, {
-  required _ScriptedClient client,
+  required ScriptedClient client,
   required TokenStore tokens,
   required FakeWishlistApi wishlist,
   WishlistMirror? mirror,
@@ -63,12 +22,18 @@ Future<void> _pump(
   await tester.pumpWidget(YazanApp(
     client: client,
     tokens: tokens,
-    repository: _emptyCatalogue(),
+    repository: catalogueOf(const []),
     storeApi: StoreApi(cartServer.call),
     accountApi: FakeAccountApi(),
     wishlistApi: wishlist,
     wishlistMirror: mirror,
   ));
+  await tester.pumpAndSettle();
+}
+
+/// A guest reaches the (optional) sign-in form through the Account entry in the app bar.
+Future<void> _openSignIn(WidgetTester tester) async {
+  await tester.tap(find.byTooltip('Account'));
   await tester.pumpAndSettle();
 }
 
@@ -83,22 +48,26 @@ void main() {
   group('sign-in', () {
     testWidgets('a wrong password gets a polite generic message', (tester) async {
       final tokens = MemoryTokenStore();
-      final client = _ScriptedClient(tokens)
+      final client = ScriptedClient(tokens)
         ..loginError = const ApiError(status: 401, code: 'yazan_mobile_bad_login');
       await _pump(tester, client: client, tokens: tokens, wishlist: FakeWishlistApi());
 
+      await _openSignIn(tester);
       await _signInAs(tester, 'noor@yazan.test');
       expect(client.logins, ['noor@yazan.test']);
       expect(find.text('The details are not right. Please try again.'), findsOneWidget);
-      expect(find.byTooltip('Account'), findsNothing);
+      // Still on the sign-in form, and still a guest.
+      expect(find.text('Password'), findsOneWidget);
+      expect(await tokens.read(), isNull);
     });
 
     testWidgets('too many attempts and an unexpected answer each get their own message', (tester) async {
       final tokens = MemoryTokenStore();
-      final client = _ScriptedClient(tokens)
+      final client = ScriptedClient(tokens)
         ..loginError = const ApiError(status: 429, code: 'yazan_rate_limited', retryAfter: 30);
       await _pump(tester, client: client, tokens: tokens, wishlist: FakeWishlistApi());
 
+      await _openSignIn(tester);
       await _signInAs(tester, 'noor@yazan.test');
       expect(find.text('Too many attempts. Please wait and try again.'), findsOneWidget);
 
@@ -113,24 +82,35 @@ void main() {
       expect(find.text('Something went wrong. Check your connection and try again.'), findsOneWidget);
     });
 
-    testWidgets('a good sign-in opens the shop and loads the favourites', (tester) async {
+    testWidgets('a good sign-in returns to the shop, loads the favourites and opens the account next time',
+        (tester) async {
       final tokens = MemoryTokenStore();
-      final client = _ScriptedClient(tokens);
+      final client = ScriptedClient(tokens);
       final wishlist = FakeWishlistApi([ring(1, 'Alpha ring')]);
       await _pump(tester, client: client, tokens: tokens, wishlist: wishlist);
+      expect(wishlist.calls, isEmpty, reason: 'no favourites are fetched for a guest');
 
+      await _openSignIn(tester);
       await _signInAs(tester, 'noor@yazan.test');
+      // The sign-in form closed itself; the shop is on screen and the favourites were fetched.
+      expect(find.text('Password'), findsNothing);
       expect(find.byTooltip('Account'), findsOneWidget);
       expect(wishlist.calls, ['list']);
+
+      // The Account entry now opens the account, not the sign-in form.
+      await tester.tap(find.byTooltip('Account'));
+      await tester.pumpAndSettle();
+      expect(find.text('Noor Ali'), findsOneWidget);
     });
   });
 
   group('sign-out', () {
-    testWidgets('from the account page: ends the session, shows sign-in, forgets the favourites', (tester) async {
+    testWidgets('from the account page: ends the session, returns to the shop as a guest, forgets the favourites',
+        (tester) async {
       final tokens = MemoryTokenStore();
       await tokens.write(Session.fromJson(
           {'access_token': 'yzm_a', 'refresh_token': 'yzr_b', 'expires_in': 900}));
-      final client = _ScriptedClient(tokens);
+      final client = ScriptedClient(tokens);
       final mirror = MemoryWishlistMirror();
       await _pump(
         tester,
@@ -152,8 +132,13 @@ void main() {
       expect(client.loggedOut, isTrue);
       expect(await tokens.read(), isNull);
       expect(mirror.items, isNull);
-      expect(find.widgetWithText(FilledButton, 'Sign in'), findsOneWidget);
+      // Back on the shop, not on a sign-in wall; the app keeps working as a guest.
       expect(find.text('Sign out'), findsNothing);
+      expect(find.widgetWithText(FilledButton, 'Sign in'), findsNothing);
+      expect(find.byTooltip('Cart'), findsOneWidget);
+      await tester.tap(find.byTooltip('Favourites'));
+      await tester.pumpAndSettle();
+      expect(find.text('Sign in to use this'), findsOneWidget);
     });
   });
 
@@ -163,7 +148,7 @@ void main() {
         {'access_token': 'yzm_a', 'refresh_token': 'yzr_b', 'expires_in': 900}));
     await _pump(
       tester,
-      client: _ScriptedClient(tokens),
+      client: ScriptedClient(tokens),
       tokens: tokens,
       wishlist: FakeWishlistApi([ring(1, 'Alpha ring')]),
     );

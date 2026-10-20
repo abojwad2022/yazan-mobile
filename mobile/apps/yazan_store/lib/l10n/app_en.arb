@@ -106,5 +106,13 @@
   "favouriteRemoved": "Removed from your favourites",
   "favouritesEmpty": "No favourites yet. Tap the heart on a ring to save it.",
   "favouritesOffline": "You are offline. Changing favourites needs an internet connection.",
-  "favouriteNotInCatalogue": "Open the shop and pull down to refresh, then try again."
+  "favouriteNotInCatalogue": "Open the shop and pull down to refresh, then try again.",
+  "signInRequiredTitle": "Sign in to use this",
+  "signInRequiredBody": "Favourites and your orders are kept in your account. You can browse and buy without one.",
+  "notNow": "Not now",
+  "signInOptional": "Signing in is optional. You can browse and order without an account.",
+  "signedInTapAgain": "You are signed in. Tap the heart again to save this ring.",
+  "sizeLabel": "Size",
+  "chooseOption": "Choose an option",
+  "chooseOptionFirst": "Please choose a size first."
 }

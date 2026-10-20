@@ -37,7 +37,6 @@ class AccountPage extends StatefulWidget {
 class _AccountPageState extends State<AccountPage> {
   Profile? _profile;
   Failure? _failure;
-  bool _loading = true;
   bool _signingOut = false;
 
   @override
@@ -52,7 +51,6 @@ class _AccountPageState extends State<AccountPage> {
       if (!mounted) return;
       setState(() {
         _profile = profile;
-        _loading = false;
       });
     } catch (e) {
       if (!mounted) return;
@@ -63,14 +61,12 @@ class _AccountPageState extends State<AccountPage> {
       }
       setState(() {
         _failure = failure;
-        _loading = false;
       });
     }
   }
 
   void _retry() {
     setState(() {
-      _loading = true;
       _failure = null;
     });
     _load();

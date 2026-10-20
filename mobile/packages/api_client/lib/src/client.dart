@@ -36,7 +36,7 @@ class YazanApiClient {
         _dio = dio ?? Dio() {
     _dio.options
       ..baseUrl = _join(baseUrl, '/wp-json')
-      ..validateStatus = (_) => true
+      ..validateStatus = ((int? _) => true)
       ..responseType = ResponseType.plain
       ..headers['Accept'] = 'application/json';
   }

@@ -36,7 +36,7 @@ class CatalogueRepository {
     final Object store = _store;
     final List<Map<String, dynamic>> rows;
     if (store is CatalogueRows) {
-      rows = await (store as CatalogueRows).readRows();
+      rows = await store.readRows();
     } else if (store is MemoryFeedStore) {
       rows = store.rows.values.toList();
     } else {

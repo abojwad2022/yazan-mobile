@@ -351,6 +351,7 @@ class OrderDetailController extends ChangeNotifier {
       kind: QueueableKind.orderNote,
       method: 'POST',
       path: notesPath,
+      entity: 'order:$orderId',
       idempotencyKey: _newKey(),
       body: {'note': note, 'customer_note': false},
     ));

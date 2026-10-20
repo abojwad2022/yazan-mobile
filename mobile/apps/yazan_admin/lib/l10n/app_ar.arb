@@ -81,6 +81,68 @@
   "noteQueued": "حُفظت على الهاتف وستُرسل عند الاتصال.",
   "noteToCustomer": "أُرسلت إلى العميل",
   "syncNow": "مزامنة الآن",
+  "syncCenterTitle": "مركز المزامنة",
+  "syncCenterOpen": "مركز المزامنة",
+  "syncWaitingCount": "بانتظار الإرسال: {count}",
+  "@syncWaitingCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "syncAttentionCount": "تحتاج إلى انتباه: {count}",
+  "@syncAttentionCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "syncLastSync": "آخر مزامنة: {time}",
+  "@syncLastSync": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "syncNever": "لم تتم المزامنة بعد.",
+  "syncOffline": "لا يوجد اتصال. ستُعاد المحاولة عند عودة الاتصال.",
+  "syncAllSent": "تم إرسال كل شيء.",
+  "syncOpNote": "ملاحظة على طلب",
+  "syncOpNoteOnOrder": "ملاحظة على الطلب #{id}",
+  "@syncOpNoteOnOrder": {
+    "placeholders": {
+      "id": {
+        "type": "int"
+      }
+    }
+  },
+  "syncOpOther": "تغيير محفوظ",
+  "syncStateConflict": "تغيّر على الخادم",
+  "syncAttempts": "المحاولات: {count}",
+  "@syncAttempts": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "syncDiscard": "تجاهل",
+  "signOutUnsentTitle": "تغييرات غير مرسلة",
+  "signOutUnsentBody": "ملاحظات محفوظة على هذا الهاتف ولم تُرسل بعد: {count}. تسجيل الخروج يحذفها.",
+  "@signOutUnsentBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "signOutAnyway": "تسجيل الخروج على أي حال",
+  "storageResetTitle": "أُعيد ضبط البيانات المحفوظة",
+  "storageResetBody": "تعذّرت قراءة البيانات المخزّنة على هذا الهاتف فتم مسحها. الملاحظات التي كانت بانتظار الإرسال فُقدت. ستُحمَّل الطلبات والمنتجات والعملاء من جديد.",
+  "storageResetOk": "حسنًا",
   "productsTitle": "المنتجات",
   "productsEmpty": "لا توجد منتجات بعد.",
   "productsLoadFailed": "تعذّر تحميل المنتجات. اسحب للأسفل للمحاولة مجددًا.",
@@ -216,5 +278,77 @@
   "customerLastOrder": "آخر طلب",
   "customerNoOrders": "لا توجد طلبات بعد.",
   "customerDetailFailed": "تعذّر تحميل تفاصيل العميل. تحتاج إلى اتصال ولا تُحفظ على الهاتف.",
-  "customerPiiHidden": "بيانات التواصل والعناوين مخفية عن حسابك."
+  "customerPiiHidden": "بيانات التواصل والعناوين مخفية عن حسابك.",
+  "dashboardTitle": "لوحة التحكم",
+  "dashboardAsOf": "آخر تحديث {time}",
+  "@dashboardAsOf": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "dashboardLoadFailed": "تعذّر تحميل لوحة التحكم. اسحب للأسفل للمحاولة مرة أخرى.",
+  "noAccessDashboardBody": "حسابك لا يملك صلاحية عرض لوحة التحكم. اطلب من مالك المتجر منحك إياها.",
+  "dashboardAlertTitle": "طلبات جديدة: {count}",
+  "@dashboardAlertTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "dashboardAlertHint": "اضغط لفتح الطلبات وإزالة هذا التنبيه.",
+  "dashboardNeedsAttention": "يحتاج إلى انتباهك",
+  "dashboardProcessing": "طلبات بانتظار التجهيز",
+  "dashboardOnHold": "طلبات معلّقة",
+  "dashboardOutOfStock": "نفد من المخزون",
+  "dashboardLowStock": "مخزون منخفض ({limit})",
+  "@dashboardLowStock": {
+    "placeholders": {
+      "limit": {
+        "type": "String"
+      }
+    }
+  },
+  "dashboardLowStockNoLimit": "مخزون منخفض",
+  "dashboardSales": "المبيعات",
+  "dashboardToday": "اليوم ({date})",
+  "@dashboardToday": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "dashboardPeriodDays": "{days} يوم",
+  "@dashboardPeriodDays": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "dashboardNetRevenue": "صافي الإيرادات",
+  "dashboardOrders": "الطلبات",
+  "dashboardOrdersCount": "الطلبات: {count}",
+  "@dashboardOrdersCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "dashboardAverageOrder": "متوسط الطلب",
+  "dashboardItemsSold": "القطع المباعة",
+  "dashboardRefunded": "المبالغ المستردة",
+  "dashboardVsPrevious": "مقارنة بالفترة السابقة ({days} يوم)",
+  "@dashboardVsPrevious": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "dashboardRecentOrders": "أحدث الطلبات"
 }

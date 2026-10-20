@@ -17,9 +17,11 @@ dependencies:
   yazan_api_client:
   yazan_design_system:
   yazan_offline_sync:
+  yazan_storage:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  dio: ^5.7.0
   flutter_lints: ^5.0.0
   flutter_launcher_icons: ^0.14.4
 flutter:

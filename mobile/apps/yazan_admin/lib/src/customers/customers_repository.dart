@@ -97,6 +97,19 @@ class CustomersRepository extends ChangeNotifier {
     _notify();
   }
 
+  /// Drops every cached row and the cursor, in memory and in the store. Called when the server
+  /// stops letting this account see the feed, so the data does not linger on the phone. A later
+  /// refresh starts from scratch.
+  Future<void> purge() async {
+    _rows = const [];
+    try {
+      await _store.apply(upserts: const [], deletedIds: const [], cursor: '', initial: true);
+    } on Exception {
+      // The rows are gone from memory either way; the sign-out wipe removes the file content.
+    }
+    _notify();
+  }
+
   Future<void> _reload() async {
     try {
       _rows = await _store.readAll();

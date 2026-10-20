@@ -81,6 +81,68 @@
   "noteQueued": "Saved on the phone. It will be sent when you are online.",
   "noteToCustomer": "Sent to customer",
   "syncNow": "Sync now",
+  "syncCenterTitle": "Sync center",
+  "syncCenterOpen": "Sync center",
+  "syncWaitingCount": "Waiting to send: {count}",
+  "@syncWaitingCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "syncAttentionCount": "Needs attention: {count}",
+  "@syncAttentionCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "syncLastSync": "Last sync: {time}",
+  "@syncLastSync": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "syncNever": "Not synced yet.",
+  "syncOffline": "No connection. It will try again when you are online.",
+  "syncAllSent": "Everything is sent.",
+  "syncOpNote": "Order note",
+  "syncOpNoteOnOrder": "Note on order #{id}",
+  "@syncOpNoteOnOrder": {
+    "placeholders": {
+      "id": {
+        "type": "int"
+      }
+    }
+  },
+  "syncOpOther": "Saved change",
+  "syncStateConflict": "Changed on the server",
+  "syncAttempts": "Attempts: {count}",
+  "@syncAttempts": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "syncDiscard": "Discard",
+  "signOutUnsentTitle": "Unsent changes",
+  "signOutUnsentBody": "Notes saved on this phone and not sent yet: {count}. Signing out deletes them.",
+  "@signOutUnsentBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "signOutAnyway": "Sign out anyway",
+  "storageResetTitle": "Saved data was reset",
+  "storageResetBody": "The data stored on this phone could not be read, so it was cleared. Notes that were waiting to be sent are lost. Orders, products and customers will load again.",
+  "storageResetOk": "OK",
   "productsTitle": "Products",
   "productsEmpty": "No products yet.",
   "productsLoadFailed": "Could not load products. Pull down to try again.",
@@ -216,5 +278,77 @@
   "customerLastOrder": "Last order",
   "customerNoOrders": "No orders yet.",
   "customerDetailFailed": "Could not load the customer details. They need a connection and are not kept on the phone.",
-  "customerPiiHidden": "Contact details and addresses are hidden for your account."
+  "customerPiiHidden": "Contact details and addresses are hidden for your account.",
+  "dashboardTitle": "Dashboard",
+  "dashboardAsOf": "As of {time}",
+  "@dashboardAsOf": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "dashboardLoadFailed": "Could not load the dashboard. Pull down to try again.",
+  "noAccessDashboardBody": "Your account does not have permission to view the dashboard. Ask the store owner to grant it.",
+  "dashboardAlertTitle": "New orders: {count}",
+  "@dashboardAlertTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "dashboardAlertHint": "Tap to open Orders and clear this alert.",
+  "dashboardNeedsAttention": "Needs attention",
+  "dashboardProcessing": "Orders to fulfil",
+  "dashboardOnHold": "Orders on hold",
+  "dashboardOutOfStock": "Out of stock",
+  "dashboardLowStock": "Low stock ({limit})",
+  "@dashboardLowStock": {
+    "placeholders": {
+      "limit": {
+        "type": "String"
+      }
+    }
+  },
+  "dashboardLowStockNoLimit": "Low stock",
+  "dashboardSales": "Sales",
+  "dashboardToday": "Today ({date})",
+  "@dashboardToday": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "dashboardPeriodDays": "{days} days",
+  "@dashboardPeriodDays": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "dashboardNetRevenue": "Net revenue",
+  "dashboardOrders": "Orders",
+  "dashboardOrdersCount": "Orders: {count}",
+  "@dashboardOrdersCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "dashboardAverageOrder": "Average order",
+  "dashboardItemsSold": "Items sold",
+  "dashboardRefunded": "Refunded",
+  "dashboardVsPrevious": "vs previous {days} days",
+  "@dashboardVsPrevious": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "dashboardRecentOrders": "Recent orders"
 }

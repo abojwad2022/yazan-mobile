@@ -178,5 +178,9 @@
   "storageReset": "Saved data on this phone could not be read, so it was reset. The shop will download again.",
   "sizeLabel": "Size",
   "chooseOption": "Choose an option",
-  "chooseOptionFirst": "Please choose a size first."
+  "chooseOptionFirst": "Please choose a size first.",
+  "searchHint": "Search rings",
+  "allCategories": "All",
+  "allInCategory": "All in this category",
+  "noMatchingProducts": "No products match. Try another category or search."
 }

@@ -10,6 +10,7 @@ import 'cart/cart_controller.dart';
 import 'cart/cart_scope.dart';
 import 'cart/store_api.dart';
 import 'catalogue/catalogue_repository.dart';
+import 'catalogue/category_repository.dart';
 import 'home_page.dart';
 import 'login_page.dart';
 import 'session_scope.dart';
@@ -29,6 +30,7 @@ class YazanApp extends StatefulWidget {
     required this.client,
     required this.tokens,
     this.repository,
+    this.categories,
     this.storeApi,
     this.accountApi,
     this.wishlistApi,
@@ -41,6 +43,9 @@ class YazanApp extends StatefulWidget {
 
   /// Optional catalogue source (tests inject one; the app builds its own).
   final CatalogueRepository? repository;
+
+  /// Optional category source (tests inject one; the app builds its own).
+  final CategoryRepository? categories;
 
   /// Optional Store API (tests inject a fake transport; the default talks to the server through the client's raw requests).
   final StoreApi? storeApi;
@@ -72,6 +77,7 @@ class _YazanAppState extends State<YazanApp> {
       CartController(widget.storeApi ?? StoreApi(widget.client.raw, fetchTokenFirst: true));
   late final AccountApi _account = widget.accountApi ?? ClientAccountApi(widget.client);
   late final CatalogueRepository? _repository = _buildRepository();
+  late final CategoryRepository? _categories = _buildCategories();
   late final WishlistController _wishlist = WishlistController(
     api: widget.wishlistApi ?? ClientWishlistApi(widget.client),
     mirror: widget.wishlistMirror ?? MemoryWishlistMirror(),
@@ -89,6 +95,15 @@ class _YazanAppState extends State<YazanApp> {
       fetch: (cursor) => widget.client.syncCatalog(cursor: cursor),
       store: data.catalogue(),
     );
+  }
+
+  /// The injected categories, else ones over the durable (public) category cache, else null.
+  CategoryRepository? _buildCategories() {
+    final injected = widget.categories;
+    if (injected != null) return injected;
+    final data = widget.localData;
+    if (data == null) return null;
+    return CategoryRepository(fetch: () => fetchCategories(widget.client), store: data.categories());
   }
 
   /// Removes the signed-in customer's local data. Never blocks or fails the sign-out: a wipe that
@@ -208,6 +223,7 @@ class _YazanAppState extends State<YazanApp> {
               client: widget.client,
               accountApi: _account,
               repository: _repository,
+              categories: _categories,
               onSignOut: _signOut,
               onSessionEnded: _signedOutNow,
             ),

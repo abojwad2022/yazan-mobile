@@ -31,6 +31,9 @@ class MemoryLocalData implements StoreLocalData {
   FeedStore catalogue() => feedFor(SqlFeedStore.guestAccountId, catalogueFeedName);
 
   @override
+  FeedStore categories() => feedFor(SqlFeedStore.guestAccountId, categoriesFeedName);
+
+  @override
   Future<void> forgetAccount() async {
     final failure = wipeFailure;
     if (failure != null) throw failure;
@@ -67,6 +70,19 @@ class CatalogueClient extends ScriptedClient {
   List<Map<String, dynamic>> records;
   bool offline;
   final List<String> cursors = [];
+
+  /// The `sync/terms` rows served to the (public) category request.
+  List<Map<String, dynamic>> categories = const [];
+
+  @override
+  Future<Map<String, dynamic>> getJson(String path,
+      {Map<String, dynamic>? query, bool optionalAuth = false}) async {
+    if (!path.endsWith('/sync/terms')) {
+      return super.getJson(path, query: query, optionalAuth: optionalAuth);
+    }
+    if (offline) throw Exception('offline');
+    return {'categories': categories};
+  }
 
   @override
   Future<DeltaPage> syncCatalog({String cursor = '', int limit = 50}) async {

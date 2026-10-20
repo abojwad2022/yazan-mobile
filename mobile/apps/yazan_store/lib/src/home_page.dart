@@ -9,6 +9,7 @@ import 'cart/cart_page.dart';
 import 'cart/cart_scope.dart';
 import 'catalogue/catalogue_list_page.dart';
 import 'catalogue/catalogue_repository.dart';
+import 'catalogue/category_repository.dart';
 import 'catalogue/product.dart';
 import 'extras/extras_menu.dart';
 import 'session_scope.dart';
@@ -24,6 +25,7 @@ class HomePage extends StatefulWidget {
     required this.onSignOut,
     required this.onSessionEnded,
     this.repository,
+    this.categories,
   });
 
   final YazanApiClient client;
@@ -40,6 +42,9 @@ class HomePage extends StatefulWidget {
   /// Injected by tests; the app builds one over the live client.
   final CatalogueRepository? repository;
 
+  /// Injected by tests; the app builds one over the live client.
+  final CategoryRepository? categories;
+
   @override
   State<HomePage> createState() => _HomePageState();
 }
@@ -47,6 +52,10 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   late final CatalogueRepository _repository = widget.repository ??
       CatalogueRepository(fetch: (cursor) => widget.client.syncCatalog(cursor: cursor));
+
+  // Tests that inject a catalogue stay off the network unless they inject categories too.
+  late final CategoryRepository? _categories = widget.categories ??
+      (widget.repository != null ? null : CategoryRepository(fetch: () => fetchCategories(widget.client)));
 
   Future<Product?> _findProduct(int id) async {
     final all = await _repository.products();
@@ -157,7 +166,7 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      body: CatalogueListPage(repository: _repository),
+      body: CatalogueListPage(repository: _repository, categories: _categories),
     );
   }
 }

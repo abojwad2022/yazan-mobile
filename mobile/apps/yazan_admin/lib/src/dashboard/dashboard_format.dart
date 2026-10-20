@@ -2,8 +2,8 @@
 // amount in the app, and values that mix digits with signs are wrapped in a left-to-right isolate so
 // they read the same inside an Arabic sentence.
 
-const _lri = '⁦';
-const _pdi = '⁩';
+const _lri = '\u2066';
+const _pdi = '\u2069';
 
 /// "1,234.50 $": the server's decimal string with thousands separators, then the store symbol.
 String formatAmount(String amount, String symbol) {

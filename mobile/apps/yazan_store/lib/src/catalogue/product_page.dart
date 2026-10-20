@@ -43,6 +43,8 @@ class _ProductPageState extends State<ProductPage> {
     final cart = CartScope.maybeOf(context);
     final wishlist = WishlistScope.maybeOf(context);
     final soldOut = selected != null ? selected.isSoldOut : product.isSoldOut;
+    // The public feed never carries a stock count (stock_status only), so this is normally null;
+    // a count that does arrive still gets the "Only N left" line.
     final stock = selected != null ? selected.stock : product.stock;
     // A variable product with nothing to choose from cannot be bought from the app.
     final buyable = !product.isSoldOut && (!product.isVariable || options.isNotEmpty);
@@ -94,6 +96,7 @@ class _ProductPageState extends State<ProductPage> {
                 if (options.isNotEmpty) ...[
                   const SizedBox(height: 16),
                   _SizePicker(
+                    product: product,
                     options: options,
                     selected: selected,
                     onPicked: (v) => setState(() => _selected = v),
@@ -196,19 +199,28 @@ class _ProductPageState extends State<ProductPage> {
 
 /// The size chooser: one chip per purchasable variation; a sold-out size is shown but disabled.
 class _SizePicker extends StatelessWidget {
-  const _SizePicker({required this.options, required this.selected, required this.onPicked});
+  const _SizePicker({
+    required this.product,
+    required this.options,
+    required this.selected,
+    required this.onPicked,
+  });
 
+  final Product product;
   final List<ProductVariation> options;
   final ProductVariation? selected;
   final ValueChanged<ProductVariation?> onPicked;
 
   /// "Size" for a size attribute, the attribute's own (tidied) name for anything else, and a
   /// neutral heading when a variation mixes several attributes.
-  static String heading(AppLocalizations l, List<ProductVariation> options) {
+  static String heading(AppLocalizations l, Product product, List<ProductVariation> options) {
     final keys = options.first.attributes.keys.toList();
     if (keys.length != 1) return l.chooseOption;
     final key = keys.first;
+    // A size is always headed in the app's own language; any other attribute uses the shop's label.
     if (key.toLowerCase().contains('size')) return l.sizeLabel;
+    final served = product.attributeLabel(key);
+    if (served != null) return served;
     final tidy = key.replaceFirst(RegExp(r'^pa_'), '').replaceAll(RegExp(r'[-_]+'), ' ').trim();
     if (tidy.isEmpty) return l.chooseOption;
     return tidy[0].toUpperCase() + tidy.substring(1);
@@ -221,7 +233,7 @@ class _SizePicker extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(heading(l, options), style: theme.textTheme.titleSmall),
+        Text(heading(l, product, options), style: theme.textTheme.titleSmall),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,

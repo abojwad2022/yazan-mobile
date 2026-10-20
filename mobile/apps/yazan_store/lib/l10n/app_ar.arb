@@ -178,5 +178,9 @@
   "storageReset": "تعذّرت قراءة البيانات المحفوظة على هذا الهاتف فتمت إعادة ضبطها. سيُحمَّل المتجر من جديد.",
   "sizeLabel": "المقاس",
   "chooseOption": "اختر خيارًا",
-  "chooseOptionFirst": "اختر المقاس أولًا."
+  "chooseOptionFirst": "اختر المقاس أولًا.",
+  "searchHint": "ابحث عن خاتم",
+  "allCategories": "الكل",
+  "allInCategory": "كل ما في هذا القسم",
+  "noMatchingProducts": "لا توجد منتجات مطابقة. جرّب قسمًا آخر أو بحثًا مختلفًا."
 }

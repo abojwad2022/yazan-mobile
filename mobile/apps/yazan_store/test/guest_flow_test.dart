@@ -218,7 +218,7 @@ void main() {
       await showChip(tester, 211);
       expect(find.text('Size'), findsOneWidget);
       expect(find.text('7'), findsOneWidget);
-      expect(find.text('8'), findsOneWidget);
+      expect(find.text('7.5'), findsOneWidget);
       expect(find.text('9 - Sold'), findsOneWidget);
       // A sold-out size is shown but cannot be picked.
       final soldChip = tester.widget<ChoiceChip>(find.byKey(const ValueKey<String>('variation-213')));
@@ -242,7 +242,7 @@ void main() {
         'id': 212,
         'quantity': 1,
         'variation': [
-          {'attribute': 'pa_size', 'value': '8'},
+          {'attribute': 'pa_size', 'value': '7-5'},
         ],
       });
       expect(find.text('Added to your cart'), findsOneWidget);

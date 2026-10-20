@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:yazan_api_client/yazan_api_client.dart';
+import 'package:yazan_domain/yazan_domain.dart';
 import 'package:yazan_offline_sync/yazan_offline_sync.dart';
 import 'package:yazan_store/src/app.dart';
 import 'package:yazan_store/src/cart/store_api.dart';
@@ -45,6 +46,13 @@ void main() {
       await data.forgetAccount();
       expect(storage.wipeCalls, [signedInAccountId]);
       expect(storage.wipeCalls, isNot(contains(SqlFeedStore.guestAccountId)));
+    });
+
+    test('the public categories are a separate feed under the guest account', () {
+      final storage = FakeYazanStorage();
+      DurableLocalData(storage).categories();
+      expect(storage.feedCalls, ['${SqlFeedStore.guestAccountId}/$categoriesFeedName']);
+      expect(categoriesFeedName, isNot(catalogueFeedName));
     });
 
     test('the signed-in key is never the guest key', () {

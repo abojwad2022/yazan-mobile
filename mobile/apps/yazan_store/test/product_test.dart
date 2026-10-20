@@ -191,6 +191,67 @@ void main() {
       ]));
       expect(p.variations.first.label, 'silver / 7');
     });
+
+    test('labels come from variation_attributes, the slug is the fallback', () {
+      final p = Product.fromRecord(variable([
+        {'id': 1, 'attributes': {'pa_size': '7-5'}},
+      ]));
+      expect(p.variations.first.label, '7-5'); // no variation_attributes at all
+      final q = Product.fromRecord({
+        ..._record(21, 'Signet', extra: {'type': 'variable'}),
+        'variation_attributes': [
+          {
+            'key': 'pa_size',
+            'label': 'Size',
+            'options': [
+              {'value': '7-5', 'label': '7.5'},
+              {'value': 'bad'},
+            ],
+          },
+          'junk',
+          {'label': 'no key'},
+        ],
+        'variations': [
+          {'id': 1, 'attributes': {'pa_size': '7-5'}},
+          {'id': 2, 'attributes': {'pa_size': '10'}},
+        ],
+      });
+      expect(q.variations[0].label, '7.5');
+      expect(q.variations[0].attributes, {'pa_size': '7-5'}); // the cart still gets the slug
+      expect(q.variations[1].label, '10');
+      expect(q.attributeLabel('pa_size'), 'Size');
+      expect(q.attributeLabel('pa_metal'), isNull);
+    });
+  });
+
+  group('currency, stock and version from the public feed', () {
+    test('prices carry the item currency; a missing or odd one is USD', () {
+      final p = Product.fromRecord(_record(1, 'A', extra: {'currency': 'omr'}));
+      expect(p.currency, 'OMR');
+      expect(p.price, const Money(9000, 'OMR'));
+      expect(p.price.toString(), 'OMR 90.00');
+      expect(p.hasSalePrice, isTrue);
+      expect(Product.fromRecord(_record(2, 'B')).price, const Money(9000));
+      expect(Product.fromRecord(_record(3, 'C', extra: {'currency': 5})).currency, 'USD');
+      expect(Product.fromRecord(_record(4, 'D', extra: {'currency': 'dollars'})).currency, 'USD');
+    });
+
+    test('variation prices use the item currency too', () {
+      final p = Product.fromRecord(_record(1, 'A', extra: {
+        'currency': 'SAR',
+        'type': 'variable',
+        'variations': [
+          {'id': 1, 'attributes': {'pa_size': '7'}, 'price': '12.50'},
+        ],
+      }));
+      expect(p.variations.single.price, const Money(1250, 'SAR'));
+    });
+
+    test('stock null and version null parse without error', () {
+      final p = Product.fromRecord(_record(1, 'A', extra: {'stock': null, 'version': null}));
+      expect(p.stock, isNull);
+      expect(p.isSoldOut, isFalse);
+    });
   });
 }
 

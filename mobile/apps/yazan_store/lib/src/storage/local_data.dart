@@ -3,6 +3,9 @@ import 'package:yazan_offline_sync/yazan_offline_sync.dart';
 /// The name of the catalogue cache inside the local database.
 const catalogueFeedName = 'products';
 
+/// The name of the category cache (public, like the catalogue).
+const categoriesFeedName = 'categories';
+
 /// The account key everything that belongs to a signed-in customer is stored under.
 ///
 /// The session holds no user id (the access and refresh tokens are opaque), and the profile id
@@ -21,6 +24,9 @@ abstract class StoreLocalData {
   /// The cache of the public catalogue. It belongs to nobody, so signing in or out never touches it.
   FeedStore catalogue();
 
+  /// The cache of the public product categories, kept apart from the products and equally public.
+  FeedStore categories();
+
   /// Removes everything stored for the signed-in customer, and nothing else. The catalogue copy
   /// stays, so the shop still opens offline after signing out.
   Future<void> forgetAccount();
@@ -37,6 +43,9 @@ class DurableLocalData implements StoreLocalData {
 
   @override
   FeedStore catalogue() => _storage.feed(SqlFeedStore.guestAccountId, catalogueFeedName);
+
+  @override
+  FeedStore categories() => _storage.feed(SqlFeedStore.guestAccountId, categoriesFeedName);
 
   @override
   Future<void> forgetAccount() => _storage.wipe(signedInAccountId);

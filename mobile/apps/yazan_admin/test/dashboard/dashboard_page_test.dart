@@ -203,7 +203,7 @@ void main() {
 
     server.answer = bootstrapAnswer(processing: 9);
     // Same entry point the pull gesture uses; a synthetic drag is flaky across platforms.
-    await tester.state<RefreshIndicatorState>(find.byType(RefreshIndicator)).show();
+    tester.state<RefreshIndicatorState>(find.byType(RefreshIndicator)).show();
     await tester.pumpAndSettle();
     expect(server.daysAsked, hasLength(2));
     expect(_in('dash-processing', find.text('9')), findsOneWidget);

@@ -148,7 +148,7 @@ void main() {
     state.show();
     await tester.pumpAndSettle();
 
-    expect(find.descendant(of: find.byKey(const ValueKey('reports-net')), matching: find.text(r'999.00 $')), findsNothing);
+    expect(server.daysAsked, hasLength(2));
     expect(find.byKey(const ValueKey('reports-net')), findsOneWidget);
     expect(tester.widget<Text>(find.byKey(const ValueKey('reports-net'))).data, r'999.00 $');
   });

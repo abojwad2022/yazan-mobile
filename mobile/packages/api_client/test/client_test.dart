@@ -58,6 +58,44 @@ void main() {
     expect(a.seen.single.headers.containsKey('Authorization'), isFalse);
   });
 
+  test('login exposes the signed-in user and a refresh keeps it', () async {
+    final store = MemoryTokenStore();
+    final a = FakeAdapter((o) {
+      if (o.path.endsWith('/auth/login')) {
+        return (
+          200,
+          {
+            ...pair('yzm_1', 'yzr_1'),
+            'user': {'id': 42, 'name': 'Sara', 'email': 's@example.test', 'scope': 'store'},
+          },
+          {},
+        );
+      }
+      if (o.path.endsWith('/auth/refresh')) return (200, pair('yzm_2', 'yzr_2'), {});
+      return o.headers['Authorization'] == 'Bearer yzm_2'
+          ? (200, {'ok': true}, {})
+          : (401, {'code': 'yazan_mobile_bad_token'}, {});
+    });
+    final c = make(a, store);
+    final r = await c.login(login: 'a', password: 'b');
+    expect(r.userId, 42);
+    expect(r.user!.name, 'Sara');
+    expect((await store.read())!.userId, 42);
+
+    await c.getJson('/yazan-mobile/v1/anything');
+    final after = (await store.read())!;
+    expect(after.accessToken, 'yzm_2');
+    expect(after.userId, 42);
+  });
+
+  test('login without a user in the response still works', () async {
+    final store = MemoryTokenStore();
+    final a = FakeAdapter((o) => (200, pair('yzm_1', 'yzr_1'), {}));
+    final r = await make(a, store).login(login: 'a', password: 'b');
+    expect(r.userId, isNull);
+    expect(r.user, isNull);
+  });
+
   test('login returns a challenge and stores nothing', () async {
     final store = MemoryTokenStore();
     final a = FakeAdapter((o) => (200, {'challenge': 'yzc_x', 'methods': ['totp']}, {}));
@@ -201,6 +239,15 @@ void main() {
       final page = await make(a, store).syncCatalog();
       expect(page.cursor, 'c1');
       expect(a.seen.single.path, endsWith('/yazan-mobile/v1/sync/catalog'));
+      expect(a.seen.single.headers.containsKey('Authorization'), isFalse);
+    });
+
+    test('syncTerms works signed out and returns the decoded map', () async {
+      final store = MemoryTokenStore();
+      final a = FakeAdapter((o) => (200, {'terms': <Object>[], 'cursor': 't1'}, {}));
+      final body = await make(a, store).syncTerms();
+      expect(body['cursor'], 't1');
+      expect(a.seen.single.path, endsWith('/yazan-mobile/v1/sync/terms'));
       expect(a.seen.single.headers.containsKey('Authorization'), isFalse);
     });
 

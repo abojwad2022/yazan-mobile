@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../products/product_permissions.dart' show PermissionsLoader;
+import '../security/app_lock_controller.dart';
+import '../security/require_unlock_tile.dart';
 import 'more_registry.dart';
 import 'staff_permissions.dart';
 
@@ -13,6 +15,7 @@ class MorePage extends StatefulWidget {
     required this.entries,
     required this.services,
     this.loadPermissions,
+    this.lock,
   });
 
   final List<MoreEntry> entries;
@@ -20,6 +23,9 @@ class MorePage extends StatefulWidget {
 
   /// `GET /yazan-mobile/v1/me`; null keeps every tile.
   final PermissionsLoader? loadPermissions;
+
+  /// The app lock; when present its "Require unlock" switch heads the list.
+  final AppLockController? lock;
 
   @override
   State<MorePage> createState() => _MorePageState();
@@ -59,7 +65,7 @@ class _MorePageState extends State<MorePage> {
       for (final e in widget.entries)
         if (_permissions.allows(e.permission)) e,
     ];
-    if (shown.isEmpty) {
+    if (shown.isEmpty && widget.lock == null) {
       return Center(
         child: Padding(
           padding: const EdgeInsetsDirectional.all(24),
@@ -69,6 +75,7 @@ class _MorePageState extends State<MorePage> {
     }
     return ListView(
       children: [
+        if (widget.lock != null) RequireUnlockTile(controller: widget.lock!),
         for (final e in shown)
           ListTile(
             key: ValueKey('more-${e.key}'),

@@ -37,6 +37,39 @@ void main() {
       expect(s.isExpired(now: now.add(const Duration(seconds: 871))), isTrue);
       expect(s.isExpired(now: now.add(const Duration(seconds: 901))), isTrue);
     });
+    test('a payload without user has no user (old stored sessions still load)', () {
+      expect(s.user, isNull);
+      expect(s.userId, isNull);
+    });
+    test('reads the user from the login payload', () {
+      final withUser = Session.fromJson({
+        'access_token': 'a',
+        'refresh_token': 'r',
+        'expires_in': 900,
+        'user': {'id': 12, 'name': 'Yazan', 'email': 'y@example.test', 'scope': 'store'},
+      });
+      expect(withUser.userId, 12);
+      expect(withUser.user!.name, 'Yazan');
+      expect(withUser.user!.email, 'y@example.test');
+      expect(withUser.user!.scope, 'store');
+      expect(SessionUser.tryFromJson(withUser.user!.toJson())!.id, 12);
+    });
+    test('tolerates a string id and ignores a user without an id', () {
+      expect(SessionUser.tryFromJson({'id': '7'})!.id, 7);
+      expect(SessionUser.tryFromJson({'name': 'x'}), isNull);
+      expect(SessionUser.tryFromJson('nope'), isNull);
+    });
+    test('copyWith keeps the user across a token refresh', () {
+      final a = Session(
+        accessToken: 'a',
+        refreshToken: 'r',
+        expiresAt: DateTime.utc(2026),
+        user: const SessionUser(id: 3),
+      );
+      final b = a.copyWith(accessToken: 'a2');
+      expect(b.accessToken, 'a2');
+      expect(b.userId, 3);
+    });
     test('rejects a malformed payload', () {
       expect(() => Session.fromJson({'access_token': 1}), throwsFormatException);
     });

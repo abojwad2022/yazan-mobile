@@ -124,6 +124,7 @@ class YazanStorage {
       await txn.execute(OutboxSql.deleteAccount, [accountId]);
       await txn.execute(FeedSql.deleteAccountRows, [accountId]);
       await txn.execute(FeedSql.deleteAccountCursors, [accountId]);
+      await txn.execute(FeedSql.deleteAccountMeta, [accountId]);
     });
   }
 

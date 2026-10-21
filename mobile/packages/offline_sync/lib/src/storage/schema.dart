@@ -64,6 +64,23 @@ CREATE TABLE feed_cursors (
   PRIMARY KEY (account_id, feed)
 ) WITHOUT ROWID''';
 
+  /// Added by migration 2: small per-feed key/value slots (e.g. a last-synced stamp).
+  static const createMeta = '''
+CREATE TABLE feed_meta (
+  account_id TEXT NOT NULL,
+  feed TEXT NOT NULL,
+  meta_key TEXT NOT NULL,
+  meta_value TEXT NOT NULL,
+  PRIMARY KEY (account_id, feed, meta_key)
+) WITHOUT ROWID''';
+  static const readMeta =
+      'SELECT meta_value FROM feed_meta WHERE account_id = ? AND feed = ? AND meta_key = ?';
+  static const upsertMeta = 'INSERT OR REPLACE INTO feed_meta '
+      '(account_id, feed, meta_key, meta_value) VALUES (?, ?, ?, ?)';
+  static const deleteMeta =
+      'DELETE FROM feed_meta WHERE account_id = ? AND feed = ? AND meta_key = ?';
+  static const deleteAccountMeta = 'DELETE FROM feed_meta WHERE account_id = ?';
+
   static const readCursor = 'SELECT cursor_value FROM feed_cursors WHERE account_id = ? AND feed = ?';
   static const readAll = 'SELECT json FROM feed_rows WHERE account_id = ? AND feed = ? ORDER BY id';
   static const clearFeed = 'DELETE FROM feed_rows WHERE account_id = ? AND feed = ?';
@@ -88,4 +105,5 @@ final List<SchemaMigration> yazanSchemaMigrations = List.unmodifiable([
     FeedSql.createRows,
     FeedSql.createCursors,
   ]),
+  const SchemaMigration(2, [FeedSql.createMeta]),
 ]);

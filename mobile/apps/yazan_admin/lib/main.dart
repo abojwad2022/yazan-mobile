@@ -6,6 +6,9 @@ import 'package:yazan_storage/yazan_storage.dart';
 import 'src/app.dart';
 import 'src/config.dart';
 import 'src/secure_token_store.dart';
+import 'src/security/app_lock_controller.dart';
+import 'src/security/local_auth_gate.dart';
+import 'src/security/lock_settings_store.dart';
 import 'src/session_events.dart';
 import 'src/storage/account_id_store.dart';
 import 'src/storage/account_lifecycle.dart';
@@ -22,11 +25,14 @@ Future<void> main() async {
     tokens: tokens,
     onSignedOut: events.sessionEnded,
   );
+  final lock = AppLockController(gate: LocalAuthGate(), settings: SecureLockSettingsStore());
+  await lock.init();
   runApp(YazanApp(
     client: client,
     tokens: tokens,
     accounts: await _openAccounts(client),
     events: events,
+    lock: lock,
   ));
 }
 

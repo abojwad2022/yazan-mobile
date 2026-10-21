@@ -42,6 +42,8 @@ class OrdersRepository extends ChangeNotifier {
   bool _failed = false;
   bool _disposed = false;
   ApiError? _error;
+  String? _status;
+  String _query = '';
 
   /// Completes once the cached rows have been read.
   Future<void> get ready => _ready;
@@ -71,6 +73,41 @@ class OrdersRepository extends ChangeNotifier {
       return b.id.compareTo(a.id);
     });
     return list;
+  }
+
+  /// The status slug the list is filtered to (`processing`), or null for every order.
+  String? get statusFilter => _status;
+  String get query => _query;
+
+  void setStatus(String? status) {
+    final next = (status == null || status.isEmpty) ? null : status;
+    if (next == _status) return;
+    _status = next;
+    _notify();
+  }
+
+  void setQuery(String query) {
+    if (query == _query) return;
+    _query = query;
+    _notify();
+  }
+
+  /// The cached orders after the status filter and the search, newest first. Local only.
+  List<OrderSummary> get filtered => [
+        for (final o in orders)
+          if ((_status == null || o.status == _status) && o.matches(_query)) o,
+      ];
+
+  /// Orders per status slug within the current search (ignoring the status filter), plus a `null`
+  /// key for the total, so the chips can show counts.
+  Map<String?, int> get statusCounts {
+    final counts = <String?, int>{null: 0};
+    for (final o in orders) {
+      if (!o.matches(_query)) continue;
+      counts[null] = counts[null]! + 1;
+      counts[o.status] = (counts[o.status] ?? 0) + 1;
+    }
+    return counts;
   }
 
   /// Drops every cached row and the cursor, in memory and in the store. Called when the server

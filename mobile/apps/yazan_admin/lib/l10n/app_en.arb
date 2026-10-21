@@ -4,6 +4,66 @@
   "moreTitle": "More",
   "moreEmpty": "Nothing else is available for your account.",
   "couponsTitle": "Coupons",
+  "staffTitle": "Staff",
+  "staffSearchHint": "Search by name, email or role",
+  "staffEmpty": "No staff accounts to show.",
+  "staffLoadFailed": "Could not load staff. Pull down to try again.",
+  "staffNoMatch": "No staff member matches “{query}”.",
+  "@staffNoMatch": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "noAccessStaffBody": "Your account does not have permission to view staff. Ask the store owner to grant it.",
+  "staffSuspended": "Suspended",
+  "staffActive": "Active",
+  "staffYou": "You",
+  "staffNoRole": "No role",
+  "staffFullAccess": "Full access",
+  "staffLastLogin": "Last sign-in {time}",
+  "@staffLastLogin": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "staffLastLoginLabel": "Last sign-in",
+  "staffNeverSignedIn":"Never signed in",
+  "staffRolesLabel": "Roles",
+  "staffStatusLabel": "Status",
+  "staffEmailLabel": "Email",
+  "staffPermissionsTitle": "What this role can do",
+  "staffPermissionsCount": "{count} permissions",
+  "@staffPermissionsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "staffPermissionsFull": "Owner role: every permission, including ones added later.",
+  "staffPermissionsNone": "This role grants no permissions.",
+  "staffPermissionsHidden": "Your account cannot view role permissions.",
+  "staffPermissionsFailed": "Could not load role permissions.",
+  "staffReadOnlyNote": "Staff accounts and roles are managed in the web dashboard. This screen is read-only.",
+  "staffSignOutAll": "Sign out on all devices",
+  "staffSignOutOnlineOnly": "This needs a connection and is never saved offline.",
+  "staffSignOutConfirm": "Sign {name} out on all devices? They will have to sign in again.",
+  "@staffSignOutConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "staffSignOutConfirmSelf": "Sign out on your other devices? This device stays signed in.",
+  "staffSignOutDone": "Signed out on all devices.",
+  "staffSignOutOffline": "No connection. Nothing was changed. Try again when you are online.",
+  "staffSignOutFailed": "Could not sign out the devices.",
+  "staffSignOutNoPermission": "You do not have permission to do this.",
   "couponsSearchHint": "Search by code or description",
   "couponsEmpty": "No coupons yet.",
   "couponsLoadFailed": "Could not load coupons. Pull down to try again.",
@@ -540,5 +600,30 @@
       }
     }
   },
-  "inventoryOpenProduct": "Open product"
+  "inventoryOpenProduct": "Open product",
+  "ordersSearchHint": "Search by order number or customer",
+  "ordersFilterAll": "All",
+  "ordersFilterChip": "{label} ({count})",
+  "@ordersFilterChip": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "ordersNoMatch": "No orders match this filter.",
+  "lockTitle": "YAZAN Admin is locked",
+  "lockUnlock": "Unlock",
+  "lockReason": "Unlock YAZAN Admin to continue",
+  "lockFailed": "Could not confirm it is you. Try again.",
+  "lockUnavailableNotice": "This phone has no fingerprint, face or screen lock set up, so the app cannot lock itself. Set one up in your phone settings to protect customer data.",
+  "lockNoticeOk": "OK",
+  "lockSettingTitle": "Require unlock",
+  "lockSettingBody": "Ask for fingerprint, face or phone passcode when you come back to the app.",
+  "lockSettingUnavailable": "Set up a screen lock on your phone to use this.",
+  "lockDisableReason": "Confirm it is you to turn off the unlock requirement",
+  "securityConfirmReason": "Confirm it is you to continue"
 }

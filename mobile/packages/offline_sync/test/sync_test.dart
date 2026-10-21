@@ -166,6 +166,107 @@ void main() {
       expect(asked, ['c1']);
     });
 
+    test('metadata: memory store keeps it; a store without support reads null and ignores writes',
+        () async {
+      final fs = MemoryFeedStore();
+      await fs.writeMeta('stamp', 'x');
+      expect(await fs.readMeta('stamp'), 'x');
+      await fs.writeMeta('stamp', null);
+      expect(await fs.readMeta('stamp'), isNull);
+
+      final FeedStore plain = _PlainStore();
+      expect(plain.supportsMeta, isFalse);
+      await plain.writeMeta('stamp', 'x');
+      expect(await plain.readMeta('stamp'), isNull);
+    });
+
+    group('replaceOnFirstSuccess', () {
+      MemoryFeedStore stale() => MemoryFeedStore()
+        ..rows[99] = {'id': 99, 'old': true}
+        ..cursor = '';
+
+      test('keeps the stale cache until the last page, then swaps once', () async {
+        final fs = stale();
+        final seen = <int>[];
+        final pages = {
+          '': page([{'id': 1}], 'c1', more: true, initial: true),
+          'c1': page([{'id': 2}, {'id': 1, 'deleted': true}], 'c2'),
+        };
+        await pullFeed(
+          fetch: (c) async {
+            seen.add(fs.rows.length);
+            return pages[c]!;
+          },
+          store: fs,
+          replaceOnFirstSuccess: true,
+        );
+        expect(seen, [1, 1], reason: 'cache untouched while pages are fetched');
+        expect(fs.rows.keys.toSet(), {2});
+        expect(fs.cursor, 'c2');
+      });
+
+      test('a failure on a later page leaves cache and cursor alone', () async {
+        final fs = stale();
+        await expectLater(
+          pullFeed(
+            fetch: (c) async {
+              if (c == '') return page([{'id': 1}], 'c1', more: true, initial: true);
+              throw StateError('offline');
+            },
+            store: fs,
+            replaceOnFirstSuccess: true,
+          ),
+          throwsStateError,
+        );
+        expect(fs.rows.keys.toSet(), {99});
+        expect(fs.cursor, '');
+      });
+
+      test('hitting maxPages before the end applies nothing', () async {
+        final fs = stale();
+        final n = await pullFeed(
+          fetch: (c) async => page([{'id': 1}], '${c}x', more: true),
+          store: fs,
+          maxPages: 2,
+          replaceOnFirstSuccess: true,
+        );
+        expect(n, 2);
+        expect(fs.rows.keys.toSet(), {99});
+        expect(fs.cursor, '');
+      });
+
+      test('with a saved cursor it is a normal delta pull', () async {
+        final fs = stale()..cursor = 'c5';
+        final asked = <String>[];
+        await pullFeed(
+          fetch: (c) async {
+            asked.add(c);
+            return page([{'id': 7}], 'c6');
+          },
+          store: fs,
+          replaceOnFirstSuccess: true,
+        );
+        expect(asked, ['c5']);
+        expect(fs.rows.keys.toSet(), {7, 99});
+      });
+
+      test('fullResync ignores the saved cursor and replaces everything', () async {
+        final fs = stale()..cursor = 'c5';
+        final asked = <String>[];
+        await pullFeed(
+          fetch: (c) async {
+            asked.add(c);
+            return page([{'id': 7}], 'c1', initial: true);
+          },
+          store: fs,
+          fullResync: true,
+        );
+        expect(asked, ['']);
+        expect(fs.rows.keys.toSet(), {7});
+        expect(fs.cursor, 'c1');
+      });
+    });
+
     test('stops at maxPages', () async {
       final fs = MemoryFeedStore();
       final n = await pullFeed(
@@ -176,4 +277,21 @@ void main() {
       expect(n, 3);
     });
   });
+}
+
+/// A FeedStore written the way app-test fakes are: no metadata support.
+class _PlainStore implements FeedStore {
+  @override
+  Future<void> apply({
+    required List<Map<String, dynamic>> upserts,
+    required List<int> deletedIds,
+    required String cursor,
+    required bool initial,
+  }) async {}
+
+  @override
+  Future<List<Map<String, dynamic>>> readAll() async => const [];
+
+  @override
+  Future<String> readCursor() async => '';
 }

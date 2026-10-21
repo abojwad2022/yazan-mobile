@@ -12,7 +12,7 @@ import 'sql.dart';
 ///
 /// [apply] is a single transaction: a crash mid-page leaves the previous rows AND the previous
 /// cursor, never new rows with an old cursor (or the reverse), so the next pull is still correct.
-class SqlFeedStore implements FeedStore {
+class SqlFeedStore implements FeedStore, FeedMetaStore {
   SqlFeedStore(
     this._db, {
     required this.accountId,
@@ -34,6 +34,17 @@ class SqlFeedStore implements FeedStore {
     if (rows.isEmpty) return '';
     return (rows.first['cursor_value'] as String?) ?? '';
   }
+
+  @override
+  Future<String?> readMeta(String key) async {
+    final rows = await _db.query(FeedSql.readMeta, [accountId, feed, key]);
+    return rows.isEmpty ? null : rows.first['meta_value'] as String?;
+  }
+
+  @override
+  Future<void> writeMeta(String key, String? value) => value == null
+      ? _db.execute(FeedSql.deleteMeta, [accountId, feed, key])
+      : _db.execute(FeedSql.upsertMeta, [accountId, feed, key, value]);
 
   @override
   Future<List<Map<String, dynamic>>> readAll() async {

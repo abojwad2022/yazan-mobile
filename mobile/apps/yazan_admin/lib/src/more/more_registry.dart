@@ -6,6 +6,7 @@ import '../coupons/coupons_page.dart';
 import '../storage/admin_stores.dart';
 import '../sync/observed_sync_engine.dart';
 import '../sync/sync_center_page.dart';
+import '../users/staff_page.dart';
 import 'section_hosts.dart';
 
 /// What a section opened from the More tab may use. Built once by the home page.
@@ -68,6 +69,14 @@ final List<MoreEntry> moreEntries = <MoreEntry>[
     icon: Icons.inventory_2_outlined,
     permission: 'inventory.view',
     builder: (context, s) => InventoryHost(services: s),
+  ),
+
+  MoreEntry(
+    key: 'staff',
+    title: (l) => l.staffTitle,
+    icon: Icons.badge_outlined,
+    permission: 'users.view',
+    builder: (context, s) => StaffPage(client: s.client, stores: s.stores),
   ),
 
   MoreEntry(

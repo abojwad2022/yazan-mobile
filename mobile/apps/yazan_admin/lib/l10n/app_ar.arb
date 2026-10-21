@@ -4,6 +4,66 @@
   "moreTitle": "المزيد",
   "moreEmpty": "لا يتوفر شيء آخر لحسابك.",
   "couponsTitle": "الكوبونات",
+  "staffTitle": "الموظفون",
+  "staffSearchHint": "ابحث بالاسم أو البريد أو الدور",
+  "staffEmpty": "لا توجد حسابات موظفين لعرضها.",
+  "staffLoadFailed": "تعذّر تحميل الموظفين. اسحب للأسفل للمحاولة مجددًا.",
+  "staffNoMatch": "لا يوجد موظف يطابق «{query}».",
+  "@staffNoMatch": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "noAccessStaffBody": "حسابك لا يملك صلاحية عرض الموظفين. اطلب من مالك المتجر منحها لك.",
+  "staffSuspended": "موقوف",
+  "staffActive": "نشط",
+  "staffYou": "أنت",
+  "staffNoRole": "بلا دور",
+  "staffFullAccess": "صلاحيات كاملة",
+  "staffLastLogin": "آخر دخول {time}",
+  "@staffLastLogin": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "staffLastLoginLabel": "آخر دخول",
+  "staffNeverSignedIn":"لم يسجّل الدخول بعد",
+  "staffRolesLabel": "الأدوار",
+  "staffStatusLabel": "الحالة",
+  "staffEmailLabel": "البريد الإلكتروني",
+  "staffPermissionsTitle": "ما يستطيع هذا الدور فعله",
+  "staffPermissionsCount": "{count} صلاحية",
+  "@staffPermissionsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "staffPermissionsFull": "دور المالك: كل الصلاحيات، بما فيها ما يُضاف لاحقًا.",
+  "staffPermissionsNone": "هذا الدور لا يمنح أي صلاحية.",
+  "staffPermissionsHidden": "حسابك لا يستطيع عرض صلاحيات الأدوار.",
+  "staffPermissionsFailed": "تعذّر تحميل صلاحيات الدور.",
+  "staffReadOnlyNote": "تُدار حسابات الموظفين وأدوارهم من لوحة التحكم على الويب. هذه الشاشة للعرض فقط.",
+  "staffSignOutAll": "تسجيل الخروج من كل الأجهزة",
+  "staffSignOutOnlineOnly": "يتطلب اتصالًا ولا يُحفظ دون اتصال.",
+  "staffSignOutConfirm": "تسجيل خروج {name} من كل الأجهزة؟ سيحتاج إلى تسجيل الدخول من جديد.",
+  "@staffSignOutConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "staffSignOutConfirmSelf": "تسجيل الخروج من أجهزتك الأخرى؟ يبقى هذا الجهاز مسجّلًا.",
+  "staffSignOutDone": "تم تسجيل الخروج من كل الأجهزة.",
+  "staffSignOutOffline": "لا يوجد اتصال. لم يتغيّر شيء. حاول مجددًا عند عودة الاتصال.",
+  "staffSignOutFailed": "تعذّر تسجيل الخروج من الأجهزة.",
+  "staffSignOutNoPermission": "ليست لديك صلاحية لتنفيذ هذا.",
   "couponsSearchHint": "ابحث بالرمز أو الوصف",
   "couponsEmpty": "لا توجد كوبونات بعد.",
   "couponsLoadFailed": "تعذّر تحميل الكوبونات. اسحب للأسفل لإعادة المحاولة.",
@@ -540,5 +600,30 @@
       }
     }
   },
-  "inventoryOpenProduct": "فتح المنتج"
+  "inventoryOpenProduct": "فتح المنتج",
+  "ordersSearchHint": "ابحث برقم الطلب أو اسم العميل",
+  "ordersFilterAll": "الكل",
+  "ordersFilterChip": "{label} ({count})",
+  "@ordersFilterChip": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "ordersNoMatch": "لا توجد طلبات تطابق هذا الفلتر.",
+  "lockTitle": "تطبيق يَزَن للإدارة مقفل",
+  "lockUnlock": "فتح القفل",
+  "lockReason": "افتح قفل تطبيق يَزَن للإدارة للمتابعة",
+  "lockFailed": "تعذّر التأكد من هويتك. حاول مرة أخرى.",
+  "lockUnavailableNotice": "لا توجد بصمة أو وجه أو قفل شاشة على هذا الهاتف، لذلك لا يستطيع التطبيق قفل نفسه. فعّل واحدًا من إعدادات الهاتف لحماية بيانات العملاء.",
+  "lockNoticeOk": "حسنًا",
+  "lockSettingTitle": "اشتراط فتح القفل",
+  "lockSettingBody": "اطلب البصمة أو الوجه أو رمز الهاتف عند العودة إلى التطبيق.",
+  "lockSettingUnavailable": "فعّل قفل الشاشة على هاتفك لاستخدام هذا الخيار.",
+  "lockDisableReason": "أكّد هويتك لإيقاف اشتراط فتح القفل",
+  "securityConfirmReason": "أكّد هويتك للمتابعة"
 }

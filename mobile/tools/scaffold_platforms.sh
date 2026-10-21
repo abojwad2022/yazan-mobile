@@ -30,6 +30,20 @@ grep -q 'android:allowBackup="false"' "$m" \
 grep -n 'minSdk' "$f" | head -2
 grep -n 'applicationId' "$f" | head -2
 grep -n 'PRODUCT_BUNDLE_IDENTIFIER' ios/Runner.xcodeproj/project.pbxproj | head -3
+# App lock (local_auth, Admin app): biometric permission, an Activity that can host the system prompt, Face ID text.
+# Harmless for apps that do not use local_auth. Idempotent; fails loudly if a template changed.
+grep -q 'android.permission.USE_BIOMETRIC' "$m" || perl -0pi -e 's/(<manifest[^>]*>)/$1\n    <uses-permission android:name="android.permission.USE_BIOMETRIC"\/>/' "$m"
+grep -q 'android.permission.USE_BIOMETRIC' "$m" \
+  || { echo "scaffold: could not add USE_BIOMETRIC to $m" >&2; exit 1; }
+act=$(find android/app/src/main \( -name 'MainActivity.kt' -o -name 'MainActivity.java' \) | head -1)
+[ -n "$act" ] || { echo "scaffold: no MainActivity found under android/app/src/main" >&2; exit 1; }
+perl -pi -e 's/\bio\.flutter\.embedding\.android\.FlutterActivity\b/io.flutter.embedding.android.FlutterFragmentActivity/; s/:\s*FlutterActivity\(\)/: FlutterFragmentActivity()/; s/extends FlutterActivity\b/extends FlutterFragmentActivity/' "$act"
+grep -q 'FlutterFragmentActivity' "$act" \
+  || { echo "scaffold: could not make $act a FlutterFragmentActivity (flutter create changed its template?)" >&2; exit 1; }
+ip=ios/Runner/Info.plist
+grep -q 'NSFaceIDUsageDescription' "$ip" || perl -0pi -e 's/<\/dict>(\s*<\/plist>)/\t<key>NSFaceIDUsageDescription<\/key>\n\t<string>Unlock the app with Face ID.<\/string>\n<\/dict>$1/' "$ip"
+grep -q 'NSFaceIDUsageDescription' "$ip" \
+  || { echo "scaffold: could not add NSFaceIDUsageDescription to $ip" >&2; exit 1; }
 export LABEL="$label"
 # What the home screen shows under the icon.
 perl -pi -e 's/android:label="[^"]*"/android:label="$ENV{LABEL}"/' android/app/src/main/AndroidManifest.xml

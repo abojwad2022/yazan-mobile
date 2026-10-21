@@ -15,6 +15,12 @@ class LoginResult {
 
   final Session? session;
   final Challenge? challenge;
+
+  /// The signed-in user's id when the response carried `user`, else null.
+  int? get userId => session?.userId;
+
+  /// The signed-in user's basic profile (id, name, email, scope) when present.
+  SessionUser? get user => session?.user;
 }
 
 /// Talks to `yazan-mobile/v1` and the existing REST namespaces with a device session.
@@ -224,6 +230,10 @@ class YazanApiClient {
       DeltaPage.fromJson(await getJson('$_ns/sync/catalog',
           query: {'cursor': cursor, 'limit': limit}, optionalAuth: true));
 
+  /// The store's taxonomy/terms feed (`sync/terms`). Public, so it works signed out.
+  Future<Map<String, dynamic>> syncTerms() =>
+      getJson('$_ns/sync/terms', optionalAuth: true);
+
   Future<T> _send<T>(
     String method,
     String path, {
@@ -331,7 +341,9 @@ class YazanApiClient {
         data: {'refresh_token': stale.refreshToken},
         auth: false,
       );
-      final s = Session.fromJson(body);
+      var s = Session.fromJson(body);
+      // A refresh response has no `user`; keep the one we already knew.
+      if (s.user == null && stale.user != null) s = s.copyWith(user: stale.user);
       await tokens.write(s);
       return s;
     } on ApiError catch (e) {

@@ -401,6 +401,37 @@ void main() {
     });
   });
 
+  group('feed metadata', () {
+    SqlFeedStore feed(String account, String name) =>
+        SqlFeedStore(db, accountId: account, feed: name, clock: () => now);
+
+    test('round-trips, overwrites, removes with null, and is namespaced', () async {
+      final f = feed('u1', 'orders');
+      expect(await f.readMeta('synced_at'), isNull);
+      await f.writeMeta('synced_at', '1');
+      await f.writeMeta('synced_at', '2');
+      expect(await f.readMeta('synced_at'), '2');
+      expect(await feed('u1', 'products').readMeta('synced_at'), isNull);
+      expect(await feed('u2', 'orders').readMeta('synced_at'), isNull);
+      await f.writeMeta('synced_at', null);
+      expect(await f.readMeta('synced_at'), isNull);
+    });
+
+    test('is independent of rows and cursor (apply with initial does not clear it)', () async {
+      final f = feed('u1', 'orders');
+      await f.writeMeta('k', 'v');
+      await f.apply(upserts: [{'id': 1}], deletedIds: const [], cursor: 'c', initial: true);
+      expect(await f.readMeta('k'), 'v');
+    });
+
+    test('the FeedMeta extension reaches SqlFeedStore through the FeedStore type', () async {
+      final FeedStore f = feed('u1', 'orders');
+      expect(f.supportsMeta, isTrue);
+      await f.writeMeta('k', 'v');
+      expect(await f.readMeta('k'), 'v');
+    });
+  });
+
   group('wipe', () {
     late YazanStorage storage;
 
@@ -432,6 +463,15 @@ void main() {
       expect((await storage.outbox.all('u2')).map((o) => o.id), ['op-u2']);
       expect(db.feedRowCount, 2);
       expect(db.cursorCount, 2);
+    });
+
+    test('also clears the feed metadata of that account only', () async {
+      await storage.feed('u1', 'orders').writeMeta('synced_at', '100');
+      await storage.feed('u2', 'orders').writeMeta('synced_at', '200');
+      await storage.wipe('u1');
+      expect(await storage.feed('u1', 'orders').readMeta('synced_at'), isNull);
+      expect(await storage.feed('u2', 'orders').readMeta('synced_at'), '200');
+      expect(db.metaCount, 1);
     });
 
     test('is atomic: a failure part-way deletes nothing', () async {
@@ -467,10 +507,10 @@ void main() {
       );
     });
 
-    test('a new database gets every table and version 1; running again does nothing', () async {
+    test('a new database gets every table and the latest version; running again does nothing', () async {
       final m = SchemaMigrator(yazanSchemaMigrations);
-      expect(await m.migrate(db), 1);
-      expect(db.version, 1);
+      expect(await m.migrate(db), 2);
+      expect(db.version, 2);
       expect(
         db.log,
         containsAll([
@@ -478,11 +518,20 @@ void main() {
           OutboxSql.createIndex,
           FeedSql.createRows,
           FeedSql.createCursors,
+          FeedSql.createMeta,
         ]),
       );
       db.log.clear();
       await m.migrate(db);
       expect(db.log, isEmpty);
+    });
+
+    test('a v1 database upgrades to v2 by creating only the metadata table', () async {
+      await SchemaMigrator(yazanSchemaMigrations.sublist(0, 1)).migrate(db);
+      expect(db.version, 1);
+      db.log.clear();
+      expect(await SchemaMigrator(yazanSchemaMigrations).migrate(db), 2);
+      expect(db.log, [FeedSql.createMeta]);
     });
 
     test('an existing database runs only the newer steps, including the Dart hook', () async {
@@ -493,7 +542,7 @@ void main() {
       final v2 = SchemaMigrator([
         ...yazanSchemaMigrations,
         SchemaMigration(
-          2,
+          3,
           ['ALTER TABLE outbox_ops ADD COLUMN note TEXT'],
           hook: (txn) async {
             hooked++;
@@ -501,8 +550,8 @@ void main() {
           },
         ),
       ]);
-      expect(await v2.migrate(db), 2);
-      expect(db.version, 2);
+      expect(await v2.migrate(db), 3);
+      expect(db.version, 3);
       expect(hooked, 1);
       expect(db.log, ['ALTER TABLE outbox_ops ADD COLUMN note TEXT', 'UPDATE outbox_ops SET note = ?']);
 
@@ -518,7 +567,7 @@ void main() {
       final v2 = SchemaMigrator([
         ...yazanSchemaMigrations,
         SchemaMigration(
-          2,
+          3,
           ['ALTER TABLE outbox_ops ADD COLUMN note TEXT'],
           hook: (txn) => txn.execute(hookSql),
         ),
@@ -526,11 +575,11 @@ void main() {
 
       db.failOn.add(hookSql);
       await expectLater(v2.migrate(db), throwsA(isA<StateError>()));
-      expect(db.version, 1);
+      expect(db.version, 2);
 
       db.failOn.clear();
-      expect(await v2.migrate(db), 2);
-      expect(db.version, 2);
+      expect(await v2.migrate(db), 3);
+      expect(db.version, 3);
     });
 
     test('a database from a newer app is refused and left alone', () async {
@@ -587,7 +636,7 @@ void main() {
     test('first launch creates the schema and a key', () async {
       final s = await open();
       expect(s.recreated, isFalse);
-      expect(opener.file!.version, 1);
+      expect(opener.file!.version, 2);
       expect(secrets.values, hasLength(1));
     });
 
@@ -634,7 +683,7 @@ void main() {
       expect(opener.deletes, 1);
       expect(await s.outbox.all('u1'), isEmpty);
       expect(secrets.values.values.single, isNot(oldKey));
-      expect(opener.file!.version, 1);
+      expect(opener.file!.version, 2);
 
       await s.close();
       s = await open();

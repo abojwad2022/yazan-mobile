@@ -22,6 +22,7 @@ import 'products/product_detail_page.dart';
 import 'products/product_summary.dart';
 import 'products/products_list_page.dart';
 import 'products/products_repository.dart';
+import 'security/app_lock_controller.dart';
 import 'storage/admin_stores.dart';
 import 'sync/observed_sync_engine.dart';
 import 'sync/sync_center_page.dart';
@@ -33,6 +34,7 @@ class HomePage extends StatefulWidget {
     required this.onSignedOut,
     this.stores,
     this.onSessionEnded,
+    this.lock,
   });
 
   final YazanApiClient client;
@@ -46,6 +48,9 @@ class HomePage extends StatefulWidget {
 
   /// Called when a sync run finds the server session dead (the app shell then wipes and signs out).
   final VoidCallback? onSessionEnded;
+
+  /// The app lock, shown as a switch in the More tab; null in tests that run without one.
+  final AppLockController? lock;
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -236,8 +241,11 @@ class _HomePageState extends State<HomePage> {
         children: [
           DashboardPage(
             repository: _dashboard,
-            // The orders list has no status filter yet, so a card opens the whole tab.
-            onOpenOrders: (_) => _goTo(1),
+            // A card opens the Orders tab filtered to its status (null = all).
+            onOpenOrders: (status) {
+              _orders.setStatus(status);
+              _goTo(1);
+            },
             onOpenProducts: () => _goTo(2),
           ),
           if (_ordersOpened)
@@ -257,6 +265,7 @@ class _HomePageState extends State<HomePage> {
               entries: moreEntries,
               services: MoreServices(client: widget.client, stores: _stores, sync: _sync),
               loadPermissions: permissionsLoader(widget.client),
+              lock: widget.lock,
             )
           else
             const SizedBox.shrink(),

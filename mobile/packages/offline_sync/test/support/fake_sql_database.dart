@@ -28,6 +28,7 @@ class FakeSqlDatabase implements SqlDatabase {
   set version(int v) => _data.version = v;
   int get feedRowCount => _data.feedRows.length;
   int get cursorCount => _data.cursors.length;
+  int get metaCount => _data.meta.length;
 
   late final SqlExecutor _outer = _FakeExecutor(this, isTxn: false);
 
@@ -69,13 +70,15 @@ class _Data {
   List<Map<String, Object?>> outbox = [];
   Map<String, Map<String, Object?>> feedRows = {};
   Map<String, String> cursors = {};
+  Map<String, String> meta = {};
 
   _Data copy() => _Data()
     ..version = version
     ..seq = seq
     ..outbox = [for (final r in outbox) Map<String, Object?>.from(r)]
     ..feedRows = {for (final e in feedRows.entries) e.key: Map<String, Object?>.from(e.value)}
-    ..cursors = Map<String, String>.from(cursors);
+    ..cursors = Map<String, String>.from(cursors)
+    ..meta = Map<String, String>.from(meta);
 }
 
 class _FakeExecutor implements SqlExecutor {
@@ -157,6 +160,12 @@ class _FakeExecutor implements SqlExecutor {
         _d.feedRows.remove('${args[0]}|${args[1]}|${args[2]}');
       case FeedSql.upsertCursor:
         _d.cursors['${args[0]}|${args[1]}'] = args[2]! as String;
+      case FeedSql.upsertMeta:
+        _d.meta['${args[0]}|${args[1]}|${args[2]}'] = args[3]! as String;
+      case FeedSql.deleteMeta:
+        _d.meta.remove('${args[0]}|${args[1]}|${args[2]}');
+      case FeedSql.deleteAccountMeta:
+        _d.meta.removeWhere((k, _) => k.startsWith('${args[0]}|'));
       case FeedSql.deleteAccountRows:
         _d.feedRows.removeWhere((_, r) => r['account_id'] == args[0]);
       case FeedSql.deleteAccountCursors:
@@ -183,6 +192,9 @@ class _FakeExecutor implements SqlExecutor {
       case FeedSql.readCursor:
         final c = _d.cursors['${args[0]}|${args[1]}'];
         return c == null ? [] : [{'cursor_value': c}];
+      case FeedSql.readMeta:
+        final m = _d.meta['${args[0]}|${args[1]}|${args[2]}'];
+        return m == null ? [] : [{'meta_value': m}];
       case FeedSql.readAll:
         final rows = _d.feedRows.values
             .where((r) => r['account_id'] == args[0] && r['feed'] == args[1])

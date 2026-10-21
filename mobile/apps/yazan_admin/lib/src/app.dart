@@ -6,6 +6,8 @@ import 'package:yazan_design_system/yazan_design_system.dart';
 import '../l10n/app_localizations.dart';
 import 'home_page.dart';
 import 'login_page.dart';
+import 'security/app_lock_controller.dart';
+import 'security/app_lock_scope.dart';
 import 'session_events.dart';
 import 'storage/account_lifecycle.dart';
 import 'storage/admin_stores.dart';
@@ -22,12 +24,16 @@ class YazanApp extends StatefulWidget {
     required this.tokens,
     this.accounts,
     this.events,
+    this.lock,
   });
 
   final YazanApiClient client;
   final TokenStore tokens;
   final AccountLifecycle? accounts;
   final SessionEvents? events;
+
+  /// The app lock (see `security/`); null runs without one, which is what most tests do.
+  final AppLockController? lock;
 
   @override
   State<YazanApp> createState() => _YazanAppState();
@@ -100,6 +106,8 @@ class _YazanAppState extends State<YazanApp> {
   }
 
   Future<void> _onSignedIn() async {
+    // Signing in is proof enough: do not lock the person out of the session they just opened.
+    widget.lock?.markUnlocked();
     final accounts = widget.accounts;
     if (accounts == null) {
       setState(() {
@@ -188,6 +196,11 @@ class _YazanAppState extends State<YazanApp> {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: AppLocalizations.supportedLocales,
+      builder: (context, child) {
+        final lock = widget.lock;
+        if (lock == null || child == null) return child ?? const SizedBox.shrink();
+        return AppLockScope(controller: lock, active: _signedIn != false, child: child);
+      },
       home: switch (_signedIn) {
         null => const Scaffold(body: Center(child: CircularProgressIndicator())),
         true => HomePage(
@@ -197,6 +210,7 @@ class _YazanAppState extends State<YazanApp> {
             stores: stores,
             onSignedOut: _onSignedOut,
             onSessionEnded: _onSessionEnded,
+            lock: widget.lock,
           ),
         false => LoginPage(
             client: widget.client,

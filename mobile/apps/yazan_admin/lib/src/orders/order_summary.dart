@@ -1,5 +1,7 @@
 import 'package:yazan_domain/yazan_domain.dart';
 
+import '../products/product_input.dart' show normalizeDigits;
+
 /// One row of the orders feed (`/yazan-mobile/v1/sync/orders`). Parsing never throws:
 /// a record with missing or odd fields still renders.
 class OrderSummary {
@@ -13,6 +15,8 @@ class OrderSummary {
     required this.created,
     required this.modified,
     required this.version,
+    this.email = '',
+    this.phone = '',
   });
 
   factory OrderSummary.fromJson(Map<String, dynamic> json) {
@@ -28,6 +32,9 @@ class OrderSummary {
       created: DateTime.tryParse(_str(json['created'])),
       modified: _str(json['modified']),
       version: _str(json['version']),
+      // The feed does not send these today; they are read only when a row carries them.
+      email: _str(json['email']).trim(),
+      phone: _str(json['phone']).trim(),
     );
   }
 
@@ -44,6 +51,22 @@ class OrderSummary {
 
   /// Version token. Sent back as `If-Match` on writes.
   final String version;
+
+  /// Empty unless the feed row carries it (field policy: never guessed).
+  final String email;
+  final String phone;
+
+  /// Case-insensitive match on the order number (a leading `#` and Arabic-Indic digits are fine),
+  /// the customer name, and the email or phone when the row has them. Empty query matches all.
+  bool matches(String query) {
+    final q = normalizeDigits(query.trim().toLowerCase()).replaceFirst(RegExp(r'^#\s*'), '');
+    if (q.isEmpty) return true;
+    if (number.toLowerCase().contains(q) || '$id' == q) return true;
+    if (customerName.toLowerCase().contains(q) || email.toLowerCase().contains(q)) return true;
+    if (phone.isEmpty || !RegExp(r'^[0-9\s+\-().]+$').hasMatch(q)) return false;
+    final digits = q.replaceAll(RegExp(r'[^0-9]'), '');
+    return digits.isNotEmpty && normalizeDigits(phone).replaceAll(RegExp(r'[^0-9]'), '').contains(digits);
+  }
 
   static String _str(Object? v) => v == null ? '' : '$v';
 

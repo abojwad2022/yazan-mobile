@@ -4,7 +4,7 @@
 label="$1"; shift
 log="$(mktemp)"
 set +e
-"$@" 2>&1 | tee "$log"
+timeout 15m "$@" 2>&1 | tee "$log"
 code=${PIPESTATUS[0]}
 set -e
 if [ "$code" -ne 0 ]; then

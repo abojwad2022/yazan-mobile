@@ -26,6 +26,7 @@ jobs:
   packages:
     name: Shared packages (analyze + test)
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
@@ -52,6 +53,7 @@ jobs:
     name: ${{ matrix.app }} / Android
     needs: packages
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -104,6 +106,7 @@ jobs:
     name: ${{ matrix.app }} / iOS (simulator, unsigned)
     needs: packages
     runs-on: macos-latest
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:

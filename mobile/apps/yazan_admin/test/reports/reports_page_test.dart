@@ -148,8 +148,9 @@ void main() {
     state.show();
     await tester.pumpAndSettle();
 
-    expect(server.daysAsked, hasLength(2));
-    expect(find.text(r'999.00 $'), findsOneWidget);
+    expect(find.descendant(of: find.byKey(const ValueKey('reports-net')), matching: find.text(r'999.00 $')), findsNothing);
+    expect(find.byKey(const ValueKey('reports-net')), findsOneWidget);
+    expect(tester.widget<Text>(find.byKey(const ValueKey('reports-net'))).data, r'999.00 $');
   });
 
   test('bar heights scale to the highest day; an empty day has no bar', () {

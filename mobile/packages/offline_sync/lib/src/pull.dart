@@ -31,14 +31,14 @@ extension FeedMeta on FeedStore {
 
   /// The stored value, or null (also null when the store has no metadata support).
   Future<String?> readMeta(String key) async {
-    final s = this;
-    return s is FeedMetaStore ? s.readMeta(key) : null;
+    // The explicit cast keeps the call on the interface: on the promoted type this extension would
+    // call itself.
+    return supportsMeta ? (this as FeedMetaStore).readMeta(key) : null;
   }
 
   /// Stores [value] under [key]; a no-op when the store has no metadata support.
   Future<void> writeMeta(String key, String? value) async {
-    final s = this;
-    if (s is FeedMetaStore) await s.writeMeta(key, value);
+    if (supportsMeta) await (this as FeedMetaStore).writeMeta(key, value);
   }
 }
 

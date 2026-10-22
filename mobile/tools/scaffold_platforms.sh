@@ -57,6 +57,14 @@ if [ "$pkg" = "yazan_store" ]; then
   grep -q 'NSCameraUsageDescription' "$ip" || perl -0pi -e 's/<\/dict>(\s*<\/plist>)/\t<key>NSCameraUsageDescription<\/key>\n\t<string>The camera reads the QR code on your YAZAN ring certificate to check the ring.<\/string>\n<\/dict>$1/' "$ip"
   grep -q 'NSCameraUsageDescription' "$ip" \
     || { echo "scaffold: could not add NSCameraUsageDescription to $ip" >&2; exit 1; }
+  # Google MLKit (used by mobile_scanner 5.x on iOS) ships no arm64 simulator slice, so its pods
+  # build x86_64 only for the simulator; build the app the same way or it cannot find Pods_Runner.
+  # Simulator only: device builds keep arm64.
+  for xc in ios/Flutter/Debug.xcconfig ios/Flutter/Release.xcconfig; do
+    grep -q 'EXCLUDED_ARCHS\[sdk=iphonesimulator\*\]' "$xc" || printf '\nEXCLUDED_ARCHS[sdk=iphonesimulator*] = arm64\n' >> "$xc"
+    grep -q 'EXCLUDED_ARCHS\[sdk=iphonesimulator\*\] = arm64' "$xc" \
+      || { echo "scaffold: could not exclude arm64 simulator in $xc" >&2; exit 1; }
+  done
 fi
 export LABEL="$label"
 # What the home screen shows under the icon.

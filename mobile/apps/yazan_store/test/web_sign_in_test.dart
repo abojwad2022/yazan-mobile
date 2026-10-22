@@ -98,13 +98,13 @@ void main() {
     test('a closed browser (CANCELED) is null; any other failure is passed on', () async {
       final cancelled = SystemAuthBrowser(
           launch: ({required url, required callbackUrlScheme}) async =>
-              throw const PlatformException(code: 'CANCELED', message: 'User canceled login'));
+              throw PlatformException(code: 'CANCELED', message: 'User canceled login'));
       expect(
           await cancelled.authenticate(url: Uri.parse('https://example.test'), callbackScheme: 'x'),
           isNull);
       final broken = SystemAuthBrowser(
           launch: ({required url, required callbackUrlScheme}) async =>
-              throw const PlatformException(code: 'EUNKNOWN'));
+              throw PlatformException(code: 'EUNKNOWN'));
       await expectLater(
           broken.authenticate(url: Uri.parse('https://example.test'), callbackScheme: 'x'),
           throwsA(isA<PlatformException>().having((e) => e.code, 'code', 'EUNKNOWN')));
@@ -119,7 +119,7 @@ void main() {
     test('the small print names the code, the platform code or the type', () {
       expect(signInErrorDetail(const ApiError(status: 400, code: 'rest_invalid_param')),
           'code: rest_invalid_param, 400');
-      expect(signInErrorDetail(const PlatformException(code: 'EUNKNOWN')), 'code: EUNKNOWN');
+      expect(signInErrorDetail(PlatformException(code: 'EUNKNOWN')), 'code: EUNKNOWN');
       expect(signInErrorDetail(const FormatException('x')), 'code: FormatException');
     });
   });
@@ -294,7 +294,7 @@ void main() {
       await _openSignIn(tester,
           client: client,
           tokens: tokens,
-          browser: FakeAuthBrowser((_) => throw const PlatformException(code: 'EUNKNOWN')));
+          browser: FakeAuthBrowser((_) => throw PlatformException(code: 'EUNKNOWN')));
 
       await _tapWebSignIn(tester);
 

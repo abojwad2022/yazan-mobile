@@ -113,7 +113,7 @@ void main() {
     final schemes = <String>[];
     final closed = SystemAuthBrowser(launch: ({required url, required callbackUrlScheme}) async {
       schemes.add(callbackUrlScheme);
-      throw const PlatformException(code: 'CANCELED');
+      throw PlatformException(code: 'CANCELED');
     });
     expect(
         await closed.authenticate(
@@ -224,7 +224,7 @@ void main() {
 
     testWidgets('a browser failure shows the generic message with the platform code',
         (tester) async {
-      final rig = _Rig((_) => throw const PlatformException(code: 'EUNKNOWN'));
+      final rig = _Rig((_) => throw PlatformException(code: 'EUNKNOWN'));
       await rig.pump(tester);
 
       await _tap(tester, _webButton);

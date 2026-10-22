@@ -4,6 +4,8 @@ import '../inventory/inventory_page.dart';
 import '../inventory/inventory_repository.dart';
 import '../reports/reports_page.dart';
 import '../reports/reports_repository.dart';
+import '../shipping_tax/shipping_tax_page.dart';
+import '../shipping_tax/shipping_tax_repository.dart';
 import '../storage/admin_stores.dart';
 import 'more_registry.dart';
 
@@ -57,4 +59,30 @@ class _InventoryHostState extends State<InventoryHost> {
 
   @override
   Widget build(BuildContext context) => InventoryPage(repository: _repository, showAppBar: true);
+}
+
+/// Owns the repository of the Shipping & tax section for as long as its page is open.
+class ShippingTaxHost extends StatefulWidget {
+  const ShippingTaxHost({super.key, required this.services});
+
+  final MoreServices services;
+
+  @override
+  State<ShippingTaxHost> createState() => _ShippingTaxHostState();
+}
+
+class _ShippingTaxHostState extends State<ShippingTaxHost> {
+  late final ShippingTaxRepository _repository = ShippingTaxRepository.forClient(
+    widget.services.client,
+    store: widget.services.stores.feed(AdminFeeds.shippingTax),
+  );
+
+  @override
+  void dispose() {
+    _repository.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => ShippingTaxPage(repository: _repository, showAppBar: true);
 }

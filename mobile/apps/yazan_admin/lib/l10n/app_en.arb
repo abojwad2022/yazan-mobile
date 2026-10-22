@@ -625,5 +625,107 @@
   "lockSettingBody": "Ask for fingerprint, face or phone passcode when you come back to the app.",
   "lockSettingUnavailable": "Set up a screen lock on your phone to use this.",
   "lockDisableReason": "Confirm it is you to turn off the unlock requirement",
-  "securityConfirmReason": "Confirm it is you to continue"
+  "securityConfirmReason": "Confirm it is you to continue",
+  "securityReasonPrice": "Confirm it is you to change the price",
+  "securityReasonStock": "Confirm it is you to change the stock",
+  "securityReasonSignOut": "Confirm it is you to sign out on all devices",
+  "securityReasonCouponAmount": "Confirm it is you to change the coupon amount",
+  "shippingTaxTitle": "Shipping & tax",
+  "shippingTaxNoAccessBody": "Your account does not have permission to view shipping or tax settings. Ask the store owner to grant it.",
+  "shippingTaxLoadFailed": "Could not load the shipping and tax settings. Pull down to try again.",
+  "shippingTaxReadOnly": "View only. Change these settings in the web dashboard.",
+  "shippingZonesTitle": "Shipping zones",
+  "shippingNoAccess": "Your account cannot view shipping settings.",
+  "shippingLoadFailed": "Could not load the shipping zones.",
+  "shippingNoZones": "No shipping zones yet.",
+  "shippingFallbackZone": "Rest of the world",
+  "shippingFallbackRegion": "Addresses no other zone covers",
+  "shippingNoMethods": "No shipping methods in this zone.",
+  "shippingMethodOn": "On",
+  "shippingMethodOff": "Off",
+  "shippingCost": "Cost: {cost}",
+  "@shippingCost": {
+    "placeholders": {
+      "cost": {
+        "type": "String"
+      }
+    }
+  },
+  "shippingCostNone": "No charge",
+  "shippingFreeAlways": "Always free",
+  "shippingFreeCoupon": "Free with a free-shipping coupon",
+  "shippingFreeMin": "Free on orders of {amount} or more",
+  "@shippingFreeMin": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "shippingFreeEither": "Free on orders of {amount} or more, or with a coupon",
+  "@shippingFreeEither": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "shippingFreeBoth": "Free on orders of {amount} or more with a coupon",
+  "@shippingFreeBoth": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "shippingLiveRates": "Carrier-calculated rates",
+  "taxTitle": "Tax",
+  "taxNoAccess": "Your account cannot view tax settings.",
+  "taxLoadFailed": "Could not load the tax settings.",
+  "taxOn": "Taxes are calculated at checkout",
+  "taxOff": "Taxes are not calculated",
+  "taxOptCalc": "Enable taxes",
+  "taxOptPricesInclude": "Prices entered with tax",
+  "taxOptBasedOn": "Calculate tax based on",
+  "taxOptShippingClass": "Shipping tax class",
+  "taxOptRoundSubtotal": "Round tax at subtotal level",
+  "taxOptDisplayShop": "Prices shown in the shop",
+  "taxOptDisplayCart": "Prices shown in cart and checkout",
+  "taxOptSuffix": "Price display suffix",
+  "taxYes": "Yes",
+  "taxNo": "No",
+  "taxValPricesIncl": "Inclusive of tax",
+  "taxValPricesExcl": "Exclusive of tax",
+  "taxValShipping": "Customer shipping address",
+  "taxValBilling": "Customer billing address",
+  "taxValBase": "Shop base address",
+  "taxValIncl": "Including tax",
+  "taxValExcl": "Excluding tax",
+  "taxValInherit": "Based on cart items",
+  "taxValNone": "Not set",
+  "taxClassStandard": "Standard",
+  "taxClassRates": "{name} rates ({count})",
+  "@taxClassRates": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "taxNoRates": "No rates in this class.",
+  "taxRateEverywhere": "Everywhere",
+  "taxRatePriority": "Priority {priority}",
+  "@taxRatePriority": {
+    "placeholders": {
+      "priority": {
+        "type": "int"
+      }
+    }
+  },
+  "taxRateShipping": "Also on shipping",
+  "taxRateCompound": "Compound",
+  "taxRateManaged": "Automatic"
 }

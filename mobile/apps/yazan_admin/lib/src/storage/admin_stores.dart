@@ -14,6 +14,9 @@ class AdminFeeds {
 
   /// The last coupon list (a snapshot, replaced on every refresh).
   static const coupons = 'coupons';
+
+  /// The last shipping zones and tax settings (two snapshot rows, replaced on every refresh).
+  static const shippingTax = 'shipping_tax';
 }
 
 /// What the Admin app needs from durable storage, in the shape of `YazanStorage` but small enough

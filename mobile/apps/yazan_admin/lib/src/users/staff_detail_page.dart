@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../dashboard/dashboard_format.dart' show isolate;
 import '../more/staff_permissions.dart';
+import '../security/app_lock_scope.dart';
 import 'staff_api.dart';
 import 'staff_detail_controller.dart';
 import 'staff_list_page.dart' show staffRoleText;
@@ -71,7 +72,10 @@ class _StaffDetailPageState extends State<StaffDetailPage> {
         ],
       ),
     );
-    if (ok != true || !mounted) return;
+    if (ok != true) return;
+    if (!mounted) return;
+    // Refused or cancelled: nothing is sent.
+    if (!await confirmSensitive(context, l.securityReasonSignOut) || !mounted) return;
     _handle(await _c.signOutEverywhere());
   }
 

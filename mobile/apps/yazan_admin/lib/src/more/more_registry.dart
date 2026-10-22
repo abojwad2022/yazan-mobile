@@ -8,6 +8,7 @@ import '../sync/observed_sync_engine.dart';
 import '../sync/sync_center_page.dart';
 import '../users/staff_page.dart';
 import 'section_hosts.dart';
+import 'staff_permissions.dart';
 
 /// What a section opened from the More tab may use. Built once by the home page.
 class MoreServices {
@@ -28,6 +29,7 @@ class MoreEntry {
     required this.icon,
     required this.builder,
     this.permission,
+    this.anyOf = const [],
   });
 
   /// Stable id; the tile's widget key is `more-<key>`.
@@ -38,6 +40,14 @@ class MoreEntry {
   /// The RBAC slug (from the `/me` permission map) that shows the tile; null means always shown.
   /// The server re-checks every request, this only hides tiles.
   final String? permission;
+
+  /// For a section made of parts with their own permissions: the tile shows when any one of these
+  /// slugs is allowed (and [permission], when set, too). Empty means no such condition.
+  final List<String> anyOf;
+
+  /// Whether the tile shows for [permissions].
+  bool visibleWith(StaffPermissions permissions) =>
+      permissions.allows(permission) && (anyOf.isEmpty || anyOf.any(permissions.allows));
 
   /// The page the tile opens. It owns its own state (repository, controllers).
   final Widget Function(BuildContext context, MoreServices services) builder;
@@ -69,6 +79,13 @@ final List<MoreEntry> moreEntries = <MoreEntry>[
     icon: Icons.inventory_2_outlined,
     permission: 'inventory.view',
     builder: (context, s) => InventoryHost(services: s),
+  ),
+  MoreEntry(
+    key: 'shipping-tax',
+    title: (l) => l.shippingTaxTitle,
+    icon: Icons.local_shipping_outlined,
+    anyOf: const ['shipping.view', 'tax.view'],
+    builder: (context, s) => ShippingTaxHost(services: s),
   ),
 
   MoreEntry(

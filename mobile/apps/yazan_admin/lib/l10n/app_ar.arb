@@ -625,5 +625,107 @@
   "lockSettingBody": "اطلب البصمة أو الوجه أو رمز الهاتف عند العودة إلى التطبيق.",
   "lockSettingUnavailable": "فعّل قفل الشاشة على هاتفك لاستخدام هذا الخيار.",
   "lockDisableReason": "أكّد هويتك لإيقاف اشتراط فتح القفل",
-  "securityConfirmReason": "أكّد هويتك للمتابعة"
+  "securityConfirmReason": "أكّد هويتك للمتابعة",
+  "securityReasonPrice": "أكّد هويتك لتغيير السعر",
+  "securityReasonStock": "أكّد هويتك لتغيير المخزون",
+  "securityReasonSignOut": "أكّد هويتك لتسجيل الخروج من كل الأجهزة",
+  "securityReasonCouponAmount": "أكّد هويتك لتغيير مبلغ الكوبون",
+  "shippingTaxTitle": "الشحن والضريبة",
+  "shippingTaxNoAccessBody": "حسابك لا يملك صلاحية عرض إعدادات الشحن أو الضريبة. اطلب من مالك المتجر منحك إياها.",
+  "shippingTaxLoadFailed": "تعذّر تحميل إعدادات الشحن والضريبة. اسحب للأسفل للمحاولة مجددًا.",
+  "shippingTaxReadOnly": "للعرض فقط. تُغيَّر هذه الإعدادات من لوحة التحكم على الويب.",
+  "shippingZonesTitle": "مناطق الشحن",
+  "shippingNoAccess": "حسابك لا يستطيع عرض إعدادات الشحن.",
+  "shippingLoadFailed": "تعذّر تحميل مناطق الشحن.",
+  "shippingNoZones": "لا توجد مناطق شحن بعد.",
+  "shippingFallbackZone": "بقية العالم",
+  "shippingFallbackRegion": "العناوين التي لا تغطيها أي منطقة أخرى",
+  "shippingNoMethods": "لا توجد طرق شحن في هذه المنطقة.",
+  "shippingMethodOn": "مفعّلة",
+  "shippingMethodOff": "متوقفة",
+  "shippingCost": "التكلفة: {cost}",
+  "@shippingCost": {
+    "placeholders": {
+      "cost": {
+        "type": "String"
+      }
+    }
+  },
+  "shippingCostNone": "بلا رسوم",
+  "shippingFreeAlways": "مجاني دائمًا",
+  "shippingFreeCoupon": "مجاني مع كوبون شحن مجاني",
+  "shippingFreeMin": "مجاني للطلبات من {amount} فأكثر",
+  "@shippingFreeMin": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "shippingFreeEither": "مجاني للطلبات من {amount} فأكثر أو مع كوبون",
+  "@shippingFreeEither": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "shippingFreeBoth": "مجاني للطلبات من {amount} فأكثر مع كوبون",
+  "@shippingFreeBoth": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "shippingLiveRates": "أسعار تحسبها شركة الشحن",
+  "taxTitle": "الضريبة",
+  "taxNoAccess": "حسابك لا يستطيع عرض إعدادات الضريبة.",
+  "taxLoadFailed": "تعذّر تحميل إعدادات الضريبة.",
+  "taxOn": "تُحسب الضريبة عند الدفع",
+  "taxOff": "لا تُحسب الضريبة",
+  "taxOptCalc": "تفعيل الضرائب",
+  "taxOptPricesInclude": "الأسعار المُدخلة شاملة الضريبة",
+  "taxOptBasedOn": "حساب الضريبة بناءً على",
+  "taxOptShippingClass": "فئة ضريبة الشحن",
+  "taxOptRoundSubtotal": "تقريب الضريبة على مستوى المجموع الفرعي",
+  "taxOptDisplayShop": "عرض الأسعار في المتجر",
+  "taxOptDisplayCart": "عرض الأسعار في السلة والدفع",
+  "taxOptSuffix": "لاحقة عرض السعر",
+  "taxYes": "نعم",
+  "taxNo": "لا",
+  "taxValPricesIncl": "شاملة الضريبة",
+  "taxValPricesExcl": "غير شاملة الضريبة",
+  "taxValShipping": "عنوان الشحن للعميل",
+  "taxValBilling": "عنوان الفوترة للعميل",
+  "taxValBase": "عنوان المتجر الأساسي",
+  "taxValIncl": "شاملة الضريبة",
+  "taxValExcl": "بدون الضريبة",
+  "taxValInherit": "حسب منتجات السلة",
+  "taxValNone": "غير محدد",
+  "taxClassStandard": "القياسية",
+  "taxClassRates": "{name} · النسب ({count})",
+  "@taxClassRates": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "taxNoRates": "لا توجد نسب في هذه الفئة.",
+  "taxRateEverywhere": "كل المواقع",
+  "taxRatePriority": "الأولوية {priority}",
+  "@taxRatePriority": {
+    "placeholders": {
+      "priority": {
+        "type": "int"
+      }
+    }
+  },
+  "taxRateShipping": "تشمل الشحن",
+  "taxRateCompound": "مركّبة",
+  "taxRateManaged": "تلقائية"
 }

@@ -4,6 +4,7 @@ import '../../l10n/app_localizations.dart';
 import '../more/staff_permissions.dart';
 import '../orders/no_access_view.dart';
 import '../products/product_permissions.dart' show PermissionsLoader;
+import '../security/app_lock_scope.dart';
 import 'coupon_api.dart';
 import 'coupon_detail_controller.dart';
 import 'coupon_dialogs.dart';
@@ -96,7 +97,10 @@ class _CouponDetailPageState extends State<CouponDetailPage> {
     if (amount == null || !mounted) return;
     if (amount == _c.amount) return;
     final shown = _c.isPercent ? '$amount%' : amount;
-    if (!await _confirm(l.couponAmountConfirm(_code, shown)) || !mounted) return;
+    if (!await _confirm(l.couponAmountConfirm(_code, shown))) return;
+    if (!mounted) return;
+    // Refused or cancelled: nothing is sent.
+    if (!await confirmSensitive(context, l.securityReasonCouponAmount) || !mounted) return;
     await _handle(await _c.saveAmount(amount));
   }
 

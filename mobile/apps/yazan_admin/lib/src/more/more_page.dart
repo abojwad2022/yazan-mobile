@@ -63,7 +63,7 @@ class _MorePageState extends State<MorePage> {
     final l = AppLocalizations.of(context);
     final shown = [
       for (final e in widget.entries)
-        if (_permissions.allows(e.permission)) e,
+        if (e.visibleWith(_permissions)) e,
     ];
     if (shown.isEmpty && widget.lock == null) {
       return Center(

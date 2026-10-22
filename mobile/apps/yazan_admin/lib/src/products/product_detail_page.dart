@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../orders/conflict_page.dart';
 import '../orders/no_access_view.dart';
+import '../security/app_lock_scope.dart';
 import 'product_detail_controller.dart';
 import 'product_edit_dialogs.dart';
 import 'product_input.dart';
@@ -108,7 +109,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     final text = input.sale.isEmpty
         ? l.productPriceConfirm(_name, input.regular)
         : l.productPriceConfirmSale(_name, input.regular, input.sale);
-    if (!await _confirm(text) || !mounted) return;
+    if (!await _confirm(text)) return;
+    if (!mounted) return;
+    // Refused or cancelled: nothing is sent and nothing is kept for a retry.
+    if (!await confirmSensitive(context, l.securityReasonPrice) || !mounted) return;
     await _handle(await _c.savePrice(regular: input.regular, sale: input.sale));
   }
 
@@ -122,7 +126,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     );
     if (qty == null || !mounted) return;
     if (qty == current) return;
-    if (!await _confirm(l.productStockConfirm(_name, qty, current)) || !mounted) return;
+    if (!await _confirm(l.productStockConfirm(_name, qty, current))) return;
+    if (!mounted) return;
+    if (!await confirmSensitive(context, l.securityReasonStock) || !mounted) return;
     await _handle(await _c.saveStock(qty));
   }
 

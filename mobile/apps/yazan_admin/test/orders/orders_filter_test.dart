@@ -6,7 +6,6 @@ import 'package:yazan_admin/src/orders/order_summary.dart';
 import 'package:yazan_admin/src/orders/orders_list_page.dart';
 import 'package:yazan_admin/src/orders/orders_repository.dart';
 import 'package:yazan_domain/yazan_domain.dart';
-import 'package:yazan_offline_sync/yazan_offline_sync.dart';
 
 Widget _host(Locale locale, Widget home) => MaterialApp(
       locale: locale,

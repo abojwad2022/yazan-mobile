@@ -31,6 +31,30 @@ class ScriptedClient extends YazanApiClient {
     return LoginResult.session(session);
   }
 
+  ApiError? socialError;
+
+  /// `provider:idToken:nonce` for every social sign-in.
+  final List<String> socialLogins = [];
+
+  @override
+  Future<LoginResult> socialLogin({
+    required String provider,
+    required String idToken,
+    String? nonce,
+    String? firstName,
+    String? lastName,
+    String? deviceName,
+    String? platform,
+  }) async {
+    socialLogins.add('$provider:$idToken:${nonce ?? ''}');
+    final error = socialError;
+    if (error != null) throw error;
+    final session = Session.fromJson(
+        {'access_token': 'yzm_s', 'refresh_token': 'yzr_s', 'expires_in': 900});
+    await tokens.write(session);
+    return LoginResult.session(session);
+  }
+
   @override
   Future<void> logout() async {
     loggedOut = true;

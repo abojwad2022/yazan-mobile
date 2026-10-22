@@ -94,6 +94,50 @@ class YazanApiClient {
     return _loginResult(body);
   }
 
+  /// Sign in with an OpenID Connect ID token from the phone's Google or Apple SDK
+  /// (`POST /auth/social`). Same session pair and `user` payload as [login], stored the same way.
+  ///
+  /// * [provider] is `google` or `apple`.
+  /// * [nonce] is the RAW nonce the app gave the provider SDK (the server accepts a token carrying
+  ///   the nonce itself or its sha256, Apple's usual pattern); omit it when none was used.
+  /// * [firstName] / [lastName]: Apple shares the name with the app once, never in the token.
+  /// * [platform] is sent only when it is `android` or `ios` (the only values the route accepts).
+  ///
+  /// The route is store-only: an admin-scope client is refused here without a network call
+  /// (`yazan_mobile_wrong_app`). While a provider is not configured on the server the call fails
+  /// with a 404 (`yazan_mobile_social_unavailable`); every token or account refusal is one generic
+  /// 401 (`yazan_mobile_social_failed`); a missing or unverified email is a 400.
+  Future<LoginResult> socialLogin({
+    required String provider,
+    required String idToken,
+    String? nonce,
+    String? firstName,
+    String? lastName,
+    String? deviceName,
+    String? platform,
+  }) async {
+    if (scope != AppScope.store) {
+      throw const ApiError(status: 403, code: 'yazan_mobile_wrong_app');
+    }
+    final body = await _send<Map<String, dynamic>>(
+      'POST',
+      '$_ns/auth/social',
+      data: {
+        'provider': provider,
+        'id_token': idToken,
+        'scope': scope.wire,
+        'device_id': deviceId,
+        if (deviceName != null) 'device_name': deviceName,
+        if (platform == 'android' || platform == 'ios') 'platform': platform,
+        if (nonce != null && nonce.isNotEmpty) 'nonce': nonce,
+        if (firstName != null && firstName.isNotEmpty) 'first_name': firstName,
+        if (lastName != null && lastName.isNotEmpty) 'last_name': lastName,
+      },
+      auth: false,
+    );
+    return _loginResult(body);
+  }
+
   Future<Session> verifySecondStep({required String challenge, required String code}) async {
     final body = await _send<Map<String, dynamic>>(
       'POST',

@@ -4,6 +4,55 @@
   "moreTitle": "المزيد",
   "moreEmpty": "لا يتوفر شيء آخر لحسابك.",
   "couponsTitle": "الكوبونات",
+  "activityTitle": "سجل النشاط",
+  "activityNoAccessBody": "لا يملك حسابك صلاحية عرض سجل النشاط. اطلب من مالك المتجر منحها.",
+  "activityLoadFailed": "تعذّر تحميل سجل النشاط. اسحب للأسفل للمحاولة مجددًا.",
+  "activityReadOnly": "للعرض فقط. لا يمكن تعديل إدخالات السجل من هنا.",
+  "activityEmpty": "لا يوجد نشاط بعد. تظهر هنا الإجراءات المتخذة في لوحة التحكم.",
+  "activityNoMatch": "لا شيء يطابق عوامل التصفية هذه.",
+  "activityFilterAction": "الإجراء",
+  "activityFilterType": "العنصر",
+  "activityAllActions": "كل الإجراءات",
+  "activityAllTypes": "كل الأنواع",
+  "activityClearFilters": "مسح عوامل التصفية",
+  "activityOnlyActor": "{name} فقط",
+  "@activityOnlyActor": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "activityShowActorOnly": "عرض نشاط هذا الشخص فقط",
+  "activityBy": "بواسطة {actor}",
+  "@activityBy": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      }
+    }
+  },
+  "activitySystem": "النظام",
+  "activityShown": "{shown} من {total}",
+  "@activityShown": {
+    "placeholders": {
+      "shown": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "activityLoadMore": "تحميل المزيد",
+  "activityLoadMoreFailed": "تعذّر تحميل المزيد من الإدخالات.",
+  "activityWhen": "الوقت",
+  "activityActor": "بواسطة",
+  "activityObject": "العنصر",
+  "activityIp": "عنوان IP",
+  "activityBrowser": "المتصفح",
+  "activityDetails": "التفاصيل",
+  "activityNoDetails": "لم تُسجَّل أي تفاصيل.",
   "staffTitle": "الموظفون",
   "staffSearchHint": "ابحث بالاسم أو البريد أو الدور",
   "staffEmpty": "لا توجد حسابات موظفين لعرضها.",

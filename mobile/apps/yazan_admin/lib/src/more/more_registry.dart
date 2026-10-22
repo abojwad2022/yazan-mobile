@@ -87,6 +87,13 @@ final List<MoreEntry> moreEntries = <MoreEntry>[
     anyOf: const ['shipping.view', 'tax.view'],
     builder: (context, s) => ShippingTaxHost(services: s),
   ),
+  MoreEntry(
+    key: 'activity',
+    title: (l) => l.activityTitle,
+    icon: Icons.history,
+    permission: 'audit.view',
+    builder: (context, s) => ActivityHost(services: s),
+  ),
 
   MoreEntry(
     key: 'staff',

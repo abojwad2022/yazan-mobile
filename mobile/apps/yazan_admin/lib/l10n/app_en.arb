@@ -4,6 +4,55 @@
   "moreTitle": "More",
   "moreEmpty": "Nothing else is available for your account.",
   "couponsTitle": "Coupons",
+  "activityTitle": "Activity log",
+  "activityNoAccessBody": "Your account does not have permission to view the activity log. Ask the store owner to grant it.",
+  "activityLoadFailed": "Could not load the activity log. Pull down to try again.",
+  "activityReadOnly": "View only. Log entries cannot be changed here.",
+  "activityEmpty": "No activity yet. Actions taken in the dashboard appear here.",
+  "activityNoMatch": "Nothing matches these filters.",
+  "activityFilterAction": "Action",
+  "activityFilterType": "Object",
+  "activityAllActions": "All actions",
+  "activityAllTypes": "All types",
+  "activityClearFilters": "Clear filters",
+  "activityOnlyActor": "Only {name}",
+  "@activityOnlyActor": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "activityShowActorOnly": "Show only this person's activity",
+  "activityBy": "By {actor}",
+  "@activityBy": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      }
+    }
+  },
+  "activitySystem": "System",
+  "activityShown": "{shown} of {total}",
+  "@activityShown": {
+    "placeholders": {
+      "shown": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "activityLoadMore": "Load more",
+  "activityLoadMoreFailed": "Could not load more entries.",
+  "activityWhen": "When",
+  "activityActor": "By",
+  "activityObject": "Object",
+  "activityIp": "IP address",
+  "activityBrowser": "Browser",
+  "activityDetails": "Details",
+  "activityNoDetails": "No details were recorded.",
   "staffTitle": "Staff",
   "staffSearchHint": "Search by name, email or role",
   "staffEmpty": "No staff accounts to show.",

@@ -285,4 +285,94 @@ void main() {
       expect(a.seen, isEmpty);
     });
   });
+
+  group('socialLogin', () {
+    test('posts the ID token to auth/social and stores the session like login', () async {
+      final store = MemoryTokenStore();
+      final a = FakeAdapter((o) => (
+            200,
+            {
+              ...pair('yzm_s', 'yzr_s'),
+              'user': {'id': 7, 'name': 'Huda', 'email': 'h@example.test', 'scope': 'store'},
+            },
+            {},
+          ));
+      final r = await make(a, store).socialLogin(
+          provider: 'google', idToken: 'eyJ.x.y', nonce: 'raw-nonce', platform: 'android');
+      expect(r.session!.accessToken, 'yzm_s');
+      expect(r.userId, 7);
+      expect(r.user!.name, 'Huda');
+      expect((await store.read())!.refreshToken, 'yzr_s');
+      expect((await store.read())!.userId, 7);
+
+      final o = a.seen.single;
+      expect(o.method, 'POST');
+      expect(o.path, endsWith('/yazan-mobile/v1/auth/social'));
+      expect(o.headers.containsKey('Authorization'), isFalse);
+      final sent = jsonDecode(o.data as String) as Map;
+      expect(sent['provider'], 'google');
+      expect(sent['id_token'], 'eyJ.x.y');
+      expect(sent['nonce'], 'raw-nonce');
+      expect(sent['scope'], 'store');
+      expect(sent['device_id'], 'dev-1');
+      expect(sent['platform'], 'android');
+    });
+
+    test('sends the Apple name and leaves out empty or unknown optional fields', () async {
+      final store = MemoryTokenStore();
+      final a = FakeAdapter((o) => (200, pair('yzm_s', 'yzr_s'), {}));
+      await make(a, store).socialLogin(
+          provider: 'apple', idToken: 't', firstName: 'Sara', lastName: '', platform: 'unknown');
+      final sent = jsonDecode(a.seen.single.data as String) as Map;
+      expect(sent['provider'], 'apple');
+      expect(sent['first_name'], 'Sara');
+      expect(sent.containsKey('last_name'), isFalse);
+      expect(sent.containsKey('nonce'), isFalse);
+      expect(sent.containsKey('platform'), isFalse);
+      expect(sent.containsKey('device_name'), isFalse);
+    });
+
+    test('a provider the server has not configured is a 404 and stores nothing', () async {
+      final store = MemoryTokenStore();
+      final a = FakeAdapter((o) => (
+            404,
+            {'code': 'yazan_mobile_social_unavailable', 'message': 'x', 'data': {'status': 404}},
+            {},
+          ));
+      try {
+        await make(a, store).socialLogin(provider: 'google', idToken: 't');
+        fail('should throw');
+      } on ApiError catch (e) {
+        expect(e.status, 404);
+        expect(e.code, 'yazan_mobile_social_unavailable');
+      }
+      expect(await store.read(), isNull);
+    });
+
+    test('a refused token is an ApiError and does not trigger a refresh', () async {
+      final store = MemoryTokenStore();
+      await store.write(Session.fromJson(pair('yzm_old', 'yzr_old')));
+      final a = FakeAdapter((o) => (401, {'code': 'yazan_mobile_social_failed'}, {}));
+      await expectLater(make(a, store).socialLogin(provider: 'apple', idToken: 't'),
+          throwsA(isA<ApiError>().having((e) => e.status, 'status', 401)));
+      expect(a.seen.single.path, endsWith('/auth/social'));
+      expect((await store.read())!.accessToken, 'yzm_old');
+    });
+
+    test('an admin-scope client is refused without a network call', () async {
+      final store = MemoryTokenStore();
+      final a = FakeAdapter((o) => (200, pair('yzm_s', 'yzr_s'), {}));
+      final c = YazanApiClient(
+        baseUrl: 'https://example.test',
+        scope: AppScope.admin,
+        deviceId: 'dev-1',
+        tokens: store,
+        dio: Dio()..httpClientAdapter = a,
+      );
+      await expectLater(c.socialLogin(provider: 'google', idToken: 't'),
+          throwsA(isA<ApiError>().having((e) => e.code, 'code', 'yazan_mobile_wrong_app')));
+      expect(a.seen, isEmpty);
+      expect(await store.read(), isNull);
+    });
+  });
 }

@@ -17,6 +17,9 @@ class AdminFeeds {
 
   /// The last shipping zones and tax settings (two snapshot rows, replaced on every refresh).
   static const shippingTax = 'shipping_tax';
+
+  /// The first page of the whole activity log (one snapshot row, replaced on every refresh).
+  static const activity = 'activity';
 }
 
 /// What the Admin app needs from durable storage, in the shape of `YazanStorage` but small enough

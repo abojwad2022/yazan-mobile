@@ -151,6 +151,10 @@ class ProductDetailController extends ChangeNotifier {
   /// True when [retry] has an attempt to resend.
   bool get canRetry => _attempt != null;
 
+  /// What [retry] would resend (price or stock), or null when nothing is open. The screen uses it
+  /// to ask for the matching identity check before the resend.
+  ProductEditKind? get pendingKind => _attempt?.kind;
+
   // ---- what the loaded record says -------------------------------------------------------------
 
   String get type => _text('type');

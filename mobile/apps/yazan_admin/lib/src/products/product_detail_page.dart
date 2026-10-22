@@ -132,6 +132,19 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     await _handle(await _c.saveStock(qty));
   }
 
+  String _reasonFor(AppLocalizations l, ProductEditKind kind) =>
+      kind == ProductEditKind.price ? l.securityReasonPrice : l.securityReasonStock;
+
+  /// "Try again" resends the open attempt, so it asks for the same identity check as the first
+  /// send. Refused or cancelled: nothing is sent and the attempt (same key) stays for the button.
+  Future<void> _retry() async {
+    final kind = _c.pendingKind;
+    if (kind == null) return;
+    final l = AppLocalizations.of(context);
+    if (!await confirmSensitive(context, _reasonFor(l, kind)) || !mounted) return;
+    await _handle(await _c.retry());
+  }
+
   Future<void> _handle(ProductEditResult result) async {
     if (!mounted) return;
     switch (result) {
@@ -179,7 +192,13 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           local: mine,
           server: server,
           onKeepServer: () => Navigator.of(ctx).pop(_ConflictChoice.keepServer),
-          onOverwrite: () => Navigator.of(ctx).pop(_ConflictChoice.overwrite),
+          // Overwriting sends the change again, so it asks for the identity check first. Refused
+          // or cancelled: the conflict screen stays open and nothing is sent.
+          onOverwrite: () async {
+            if (!await confirmSensitive(ctx, _reasonFor(l, c.kind))) return;
+            if (!ctx.mounted) return;
+            Navigator.of(ctx).pop(_ConflictChoice.overwrite);
+          },
         ),
       ),
     );
@@ -394,7 +413,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                 Align(
                   alignment: AlignmentDirectional.centerStart,
                   child: TextButton(
-                    onPressed: _c.sending ? null : () async => _handle(await _c.retry()),
+                    key: const ValueKey('edit-retry'),
+                    onPressed: _c.sending ? null : _retry,
                     child: Text(l.retry),
                   ),
                 ),

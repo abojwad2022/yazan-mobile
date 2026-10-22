@@ -12,6 +12,7 @@ import 'package:yazan_admin/src/security/app_lock_scope.dart';
 import 'package:yazan_admin/src/security/lock_settings_store.dart';
 import 'package:yazan_admin/src/users/staff_detail_page.dart';
 import 'package:yazan_admin/src/users/staff_member.dart';
+import 'package:yazan_domain/yazan_domain.dart';
 
 import '../coupons/fakes.dart';
 import '../orders/fakes.dart' show KeySeq;
@@ -67,6 +68,17 @@ Future<void> _tap(WidgetTester t, Key key) async {
   await t.tap(find.byKey(key));
   await _frames(t);
 }
+
+Future<void> _tapText(WidgetTester t, String text) async {
+  await t.ensureVisible(find.text(text));
+  await t.pump();
+  await t.tap(find.text(text));
+  await _frames(t);
+}
+
+const String _offlineText =
+    'This needs a connection. Nothing was saved on the phone; try again when you are online.';
+const ApiError _stale = ApiError(status: 412, code: 'yazan_precondition_failed', current: 'v2');
 
 Future<void> _enter(WidgetTester t, String key, String text) async {
   await t.enterText(find.byKey(ValueKey(key)), text);
@@ -224,6 +236,177 @@ void main() {
       expect(gate.authCalls, 1);
       expect(server.writes.single.fields, {'stock_quantity': 5, 'original_stock_quantity': 3});
       expect(find.text('In stock: 5'), findsOneWidget);
+    });
+  });
+
+  group('Try again after a lost answer (product)', () {
+    testWidgets('refused check resends nothing and keeps the button', (t) async {
+      _tallView(t);
+      // First check passes, the send is lost; the check before "Try again" is refused.
+      final gate = FakeBiometricGate(results: [true, false]);
+      final server = FakeProductServer()..writeFailures.addAll([Exception('offline'), null]);
+      await t.pumpWidget(_host(await _unlockedLock(gate), _productPage(server)));
+      await _frames(t);
+
+      await _changePrice(t);
+      expect(server.writes, hasLength(1));
+      expect(find.text(_offlineText), findsOneWidget);
+
+      await _tap(t, const ValueKey('edit-retry'));
+      expect(gate.authCalls, 2);
+      expect(gate.reasons[1], 'Confirm it is you to change the price');
+      expect(server.writes, hasLength(1));
+      // The attempt is still open: same message, same button.
+      expect(find.text(_offlineText), findsOneWidget);
+      expect(find.byKey(const ValueKey('edit-retry')), findsOneWidget);
+      expect(find.byKey(const ValueKey('lock-cover')), findsNothing);
+      expect(find.text('120.00'), findsOneWidget);
+    });
+
+    testWidgets('accepted check resends the same request under the same key', (t) async {
+      _tallView(t);
+      final gate = FakeBiometricGate(results: [true, true]);
+      final server = FakeProductServer()..writeFailures.addAll([Exception('offline'), null]);
+      await t.pumpWidget(_host(await _unlockedLock(gate), _productPage(server)));
+      await _frames(t);
+
+      await _changePrice(t);
+      await _tap(t, const ValueKey('edit-retry'));
+      expect(gate.authCalls, 2);
+      expect(server.writes, hasLength(2));
+      expect(server.writes[1].key, server.writes[0].key);
+      expect(server.writes[1].fields, {'regular_price': '150.00', 'sale_price': ''});
+      expect(find.text('Product updated.'), findsOneWidget);
+    });
+
+    testWidgets('a stock retry asks with the stock reason', (t) async {
+      _tallView(t);
+      final gate = FakeBiometricGate(results: [true, false]);
+      final server = FakeProductServer()..writeFailures.addAll([Exception('offline'), null]);
+      await t.pumpWidget(_host(await _unlockedLock(gate), _productPage(server)));
+      await _frames(t);
+
+      await _changeStock(t);
+      await _tap(t, const ValueKey('edit-retry'));
+      expect(gate.reasons, [
+        'Confirm it is you to change the stock',
+        'Confirm it is you to change the stock',
+      ]);
+      expect(server.writes, hasLength(1));
+      expect(find.byKey(const ValueKey('edit-retry')), findsOneWidget);
+    });
+  });
+
+  group('Overwrite with mine (product conflict)', () {
+    Future<void> openConflict(WidgetTester t, FakeProductServer server) async {
+      await _tap(t, const ValueKey('edit-price'));
+      await _enter(t, 'regular-price-field', '150');
+      await _tap(t, const ValueKey('price-save'));
+      // Someone changes the price on the website while the confirmation is open.
+      server
+        ..regular = '200.00'
+        ..version = 'v2';
+      await _tap(t, const ValueKey('confirm-change'));
+      expect(find.text('This product changed'), findsOneWidget);
+    }
+
+    testWidgets('refused check sends nothing and keeps the conflict screen', (t) async {
+      _tallView(t);
+      final gate = FakeBiometricGate(results: [true, false]);
+      final server = FakeProductServer()..writeFailures.add(_stale);
+      await t.pumpWidget(_host(await _unlockedLock(gate), _productPage(server)));
+      await _frames(t);
+
+      await openConflict(t, server);
+      expect(server.writes, hasLength(1));
+
+      await _tapText(t, 'Overwrite with mine');
+      expect(gate.authCalls, 2);
+      expect(gate.reasons[1], 'Confirm it is you to change the price');
+      expect(server.writes, hasLength(1));
+      expect(server.regular, '200.00');
+      // Still on the conflict screen, both choices still offered.
+      expect(find.text('This product changed'), findsOneWidget);
+      expect(find.text('Overwrite with mine'), findsOneWidget);
+      expect(find.text('Keep server version'), findsOneWidget);
+    });
+
+    testWidgets('accepted check sends the change against the server version', (t) async {
+      _tallView(t);
+      final gate = FakeBiometricGate(results: [true, true]);
+      final server = FakeProductServer()..writeFailures.add(_stale);
+      await t.pumpWidget(_host(await _unlockedLock(gate), _productPage(server)));
+      await _frames(t);
+
+      await openConflict(t, server);
+      await _tapText(t, 'Overwrite with mine');
+      expect(gate.authCalls, 2);
+      expect(server.writes.map((w) => w.version), ['v1', 'v2']);
+      expect(server.writes[1].key, isNot(server.writes[0].key));
+      expect(server.writes[1].fields, {'regular_price': '150.00', 'sale_price': ''});
+      expect(server.regular, '150.00');
+      expect(find.text('This product changed'), findsNothing);
+      expect(find.text('Product updated.'), findsOneWidget);
+    });
+  });
+
+  group('Try again after a lost answer (coupon, staff)', () {
+    testWidgets('coupon amount: refused check resends nothing and keeps the button', (t) async {
+      _tallView(t);
+      final gate = FakeBiometricGate(results: [true, false]);
+      final server = FakeCouponServer()..writeFailures.addAll([Exception('offline'), null]);
+      await t.pumpWidget(_host(await _unlockedLock(gate), _couponPage(server)));
+      await _frames(t);
+
+      await _changeCouponAmount(t);
+      expect(server.writes, hasLength(1));
+      await _tap(t, const ValueKey('edit-retry'));
+      expect(gate.reasons[1], 'Confirm it is you to change the coupon amount');
+      expect(server.writes, hasLength(1));
+      expect(find.byKey(const ValueKey('edit-retry')), findsOneWidget);
+    });
+
+    testWidgets('coupon amount: accepted check resends under the same key', (t) async {
+      _tallView(t);
+      final gate = FakeBiometricGate(results: [true, true]);
+      final server = FakeCouponServer()..writeFailures.addAll([Exception('offline'), null]);
+      await t.pumpWidget(_host(await _unlockedLock(gate), _couponPage(server)));
+      await _frames(t);
+
+      await _changeCouponAmount(t);
+      await _tap(t, const ValueKey('edit-retry'));
+      expect(gate.authCalls, 2);
+      expect(server.writes, hasLength(2));
+      expect(server.writes[1].key, server.writes[0].key);
+    });
+
+    testWidgets('sign out everywhere: refused check resends nothing and keeps the button', (t) async {
+      _tallView(t);
+      final gate = FakeBiometricGate(results: [true, false]);
+      final server = FakeStaffServer()..signOutFailures.addAll([Exception('offline'), null]);
+      await t.pumpWidget(_host(await _unlockedLock(gate), _staffPage(server)));
+      await _frames(t);
+
+      await _signOutEverywhere(t);
+      expect(server.signOuts, hasLength(1));
+      await _tap(t, const ValueKey('signout-retry'));
+      expect(gate.reasons[1], 'Confirm it is you to sign out on all devices');
+      expect(server.signOuts, hasLength(1));
+      expect(find.byKey(const ValueKey('signout-retry')), findsOneWidget);
+    });
+
+    testWidgets('sign out everywhere: accepted check resends under the same key', (t) async {
+      _tallView(t);
+      final gate = FakeBiometricGate(results: [true, true]);
+      final server = FakeStaffServer()..signOutFailures.addAll([Exception('offline'), null]);
+      await t.pumpWidget(_host(await _unlockedLock(gate), _staffPage(server)));
+      await _frames(t);
+
+      await _signOutEverywhere(t);
+      await _tap(t, const ValueKey('signout-retry'));
+      expect(gate.authCalls, 2);
+      expect(server.signOuts, hasLength(2));
+      expect(find.text('Signed out on all devices.'), findsOneWidget);
     });
   });
 

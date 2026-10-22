@@ -187,5 +187,11 @@
   "scanCancel": "Cancel",
   "scanTypeInstead": "Type the serial instead",
   "scanTorchOn": "Turn on the light",
-  "scanTorchOff": "Turn off the light"
+  "scanTorchOff": "Turn off the light",
+  "continueWithGoogle": "Continue with Google",
+  "continueWithApple": "Continue with Apple",
+  "socialOr": "or",
+  "socialUnavailable": "Signing in this way is not available yet. Please use your email and password.",
+  "socialFailed": "That sign-in did not work. Please try again or use your email and password.",
+  "socialEmailNeeded": "We need a verified email address from that account to sign you in. Please use your email and password."
 }

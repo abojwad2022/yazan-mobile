@@ -125,6 +125,16 @@ class _CouponDetailPageState extends State<CouponDetailPage> {
     await _handle(stopping ? await _c.expireNow() : await _c.removeExpiry());
   }
 
+  /// "Try again" on an amount change asks for the same identity check as the first send; an expiry
+  /// change never did. Refused or cancelled: nothing is sent and the attempt stays for the button.
+  Future<void> _retry() async {
+    if (_c.retryChangesAmount) {
+      final l = AppLocalizations.of(context);
+      if (!await confirmSensitive(context, l.securityReasonCouponAmount) || !mounted) return;
+    }
+    await _handle(await _c.retry());
+  }
+
   Future<void> _handle(CouponEditResult result) async {
     if (!mounted) return;
     if (result == CouponEditResult.done) {
@@ -286,7 +296,7 @@ class _CouponDetailPageState extends State<CouponDetailPage> {
                   alignment: AlignmentDirectional.centerStart,
                   child: TextButton(
                     key: const ValueKey('edit-retry'),
-                    onPressed: _c.sending ? null : () async => _handle(await _c.retry()),
+                    onPressed: _c.sending ? null : _retry,
                     child: Text(l.retry),
                   ),
                 ),

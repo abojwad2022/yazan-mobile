@@ -73,6 +73,10 @@ class CouponDetailController extends ChangeNotifier {
   String get lastMessage => _lastMessage;
   bool get canRetry => _attempt != null;
 
+  /// True when [retry] would resend a discount amount change (the one coupon change that asks
+  /// for an identity check), false for an expiry change or when nothing is open.
+  bool get retryChangesAmount => _attempt?.fields.containsKey('amount') ?? false;
+
   // ---- what the loaded coupon says -------------------------------------------------------------
 
   String _text(String key) {

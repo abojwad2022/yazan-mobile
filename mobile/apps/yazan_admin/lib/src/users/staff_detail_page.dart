@@ -79,6 +79,14 @@ class _StaffDetailPageState extends State<StaffDetailPage> {
     _handle(await _c.signOutEverywhere());
   }
 
+  /// "Try again" resends the sign-out, so it asks for the identity check again. Refused or
+  /// cancelled: nothing is sent and the open key stays for the button.
+  Future<void> _retry() async {
+    final l = AppLocalizations.of(context);
+    if (!await confirmSensitive(context, l.securityReasonSignOut) || !mounted) return;
+    _handle(await _c.retry());
+  }
+
   void _handle(StaffSignOutResult result) {
     if (!mounted) return;
     if (result == StaffSignOutResult.done) {
@@ -270,7 +278,7 @@ class _StaffDetailPageState extends State<StaffDetailPage> {
                   alignment: AlignmentDirectional.centerStart,
                   child: TextButton(
                     key: const ValueKey('signout-retry'),
-                    onPressed: _c.sending ? null : () async => _handle(await _c.retry()),
+                    onPressed: _c.sending ? null : _retry,
                     child: Text(l.retry),
                   ),
                 ),

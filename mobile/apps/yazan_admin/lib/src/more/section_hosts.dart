@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../activity/activity_page.dart';
+import '../activity/activity_repository.dart';
 import '../inventory/inventory_page.dart';
 import '../inventory/inventory_repository.dart';
 import '../reports/reports_page.dart';
@@ -85,4 +87,30 @@ class _ShippingTaxHostState extends State<ShippingTaxHost> {
 
   @override
   Widget build(BuildContext context) => ShippingTaxPage(repository: _repository, showAppBar: true);
+}
+
+/// Owns the repository of the Activity log section for as long as its page is open.
+class ActivityHost extends StatefulWidget {
+  const ActivityHost({super.key, required this.services});
+
+  final MoreServices services;
+
+  @override
+  State<ActivityHost> createState() => _ActivityHostState();
+}
+
+class _ActivityHostState extends State<ActivityHost> {
+  late final ActivityRepository _repository = ActivityRepository.forClient(
+    widget.services.client,
+    store: widget.services.stores.feed(AdminFeeds.activity),
+  );
+
+  @override
+  void dispose() {
+    _repository.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => ActivityPage(repository: _repository, showAppBar: true);
 }

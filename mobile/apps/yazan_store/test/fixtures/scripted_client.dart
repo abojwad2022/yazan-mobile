@@ -55,9 +55,23 @@ class ScriptedClient extends YazanApiClient {
     return LoginResult.session(session);
   }
 
+  /// Thrown by [logout] before it clears anything (a sign-out the client could not finish).
+  Object? logoutError;
+
+  /// How many times the session was ended through [clearSession].
+  int clearedSessions = 0;
+
   @override
   Future<void> logout() async {
     loggedOut = true;
+    final error = logoutError;
+    if (error != null) throw error;
     await tokens.clear();
+  }
+
+  @override
+  Future<void> clearSession() async {
+    clearedSessions++;
+    await super.clearSession();
   }
 }

@@ -140,6 +140,32 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Sign in to use this'), findsOneWidget);
     });
+
+    testWidgets('a sign-out the client could not finish still ends the session through the client',
+        (tester) async {
+      final tokens = MemoryTokenStore();
+      await tokens.write(Session.fromJson(
+          {'access_token': 'yzm_a', 'refresh_token': 'yzr_b', 'expires_in': 900}));
+      final client = ScriptedClient(tokens)..logoutError = StateError('no connection');
+      await _pump(
+        tester,
+        client: client,
+        tokens: tokens,
+        wishlist: FakeWishlistApi([ring(1, 'Alpha ring')]),
+      );
+
+      await tester.tap(find.byTooltip('Account'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Sign out'));
+      await tester.pumpAndSettle();
+
+      expect(client.loggedOut, isTrue);
+      // Cleared by the client (so a refresh in flight cannot write it back), not the store directly.
+      expect(client.clearedSessions, 1);
+      expect(await tokens.read(), isNull);
+      expect(find.text('Sign out'), findsNothing);
+      expect(find.byTooltip('Cart'), findsOneWidget);
+    });
   });
 
   testWidgets('favourites reachable from the app bar and the account page', (tester) async {

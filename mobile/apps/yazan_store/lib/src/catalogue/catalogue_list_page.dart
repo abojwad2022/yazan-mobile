@@ -59,9 +59,11 @@ class _CatalogueListPageState extends State<CatalogueListPage> {
   }
 
   Future<void> _refresh() async {
+    // A pull cut off before the end of the feed is not fresh either: the saved products stay
+    // marked stale until a refresh reads the feed to its end.
     var failed = false;
     try {
-      await widget.repository.refresh();
+      failed = !await widget.repository.refresh();
     } catch (_) {
       failed = true;
     }

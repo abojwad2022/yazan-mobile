@@ -205,7 +205,8 @@ class _YazanAppState extends State<YazanApp> {
     try {
       await widget.client.logout();
     } catch (_) {
-      await widget.tokens.clear();
+      // Through the client, so a refresh still in flight cannot write the session back.
+      await widget.client.clearSession();
     }
     _signedOutNow();
   }

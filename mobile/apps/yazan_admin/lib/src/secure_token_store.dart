@@ -23,6 +23,9 @@ class SecureTokenStore implements TokenStore {
         accessToken: m['a'] as String,
         refreshToken: m['r'] as String,
         expiresAt: DateTime.parse(m['e'] as String),
+        // Absent in values written before the user was kept, and unreadable ones are dropped: the
+        // session still loads, only without a user.
+        user: SessionUser.tryFromJson(m['u']),
       );
     } catch (_) {
       await clear();
@@ -31,14 +34,18 @@ class SecureTokenStore implements TokenStore {
   }
 
   @override
-  Future<void> write(Session session) => _s.write(
-        key: _key,
-        value: jsonEncode({
-          'a': session.accessToken,
-          'r': session.refreshToken,
-          'e': session.expiresAt.toIso8601String(),
-        }),
-      );
+  Future<void> write(Session session) {
+    final user = session.user;
+    return _s.write(
+      key: _key,
+      value: jsonEncode({
+        'a': session.accessToken,
+        'r': session.refreshToken,
+        'e': session.expiresAt.toIso8601String(),
+        if (user != null) 'u': user.toJson(),
+      }),
+    );
+  }
 
   @override
   Future<void> clear() => _s.delete(key: _key);

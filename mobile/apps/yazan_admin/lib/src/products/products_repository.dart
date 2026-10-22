@@ -44,6 +44,9 @@ class ProductsRepository extends ChangeNotifier {
     );
   }
 
+  /// The feed metadata key the time of the last complete pull is stored under.
+  static const syncedAtKey = 'synced_at';
+
   final DateTime Function() _clock;
   final ProductsFetch _fetch;
   final FeedStore _store;
@@ -125,6 +128,7 @@ class ProductsRepository extends ChangeNotifier {
     _lastSyncedAt = null;
     try {
       await _store.apply(upserts: const [], deletedIds: const [], cursor: '', initial: true);
+      await _store.writeMeta(syncedAtKey, null);
     } on Exception {
       // The rows are gone from memory either way; the sign-out wipe removes the file content.
     }
@@ -157,7 +161,7 @@ class ProductsRepository extends ChangeNotifier {
           },
           store: _store,
         );
-        if (!more) _lastSyncedAt = _clock();
+        if (!more) await _stamp();
         _failed = false;
         _error = null;
       } on ApiError catch (e) {
@@ -173,6 +177,19 @@ class ProductsRepository extends ChangeNotifier {
     _loading = false;
     _loaded = true;
     _notify();
+  }
+
+  /// Records a pull that reached the end of the feed: in memory for [lastSyncedAt], and in the
+  /// feed's metadata under [syncedAtKey] (UTC, ISO 8601) so the time survives a restart. The stored
+  /// value is a record only; [lastSyncedAt] deliberately does not read it back.
+  Future<void> _stamp() async {
+    final now = _clock();
+    _lastSyncedAt = now;
+    try {
+      await _store.writeMeta(syncedAtKey, now.toUtc().toIso8601String());
+    } on Exception {
+      // The rows are saved; only the stored sync time is missing.
+    }
   }
 
   Future<void> _refreshPermissions() async {

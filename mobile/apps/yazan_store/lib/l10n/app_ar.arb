@@ -182,5 +182,10 @@
   "searchHint": "ابحث عن خاتم",
   "allCategories": "الكل",
   "allInCategory": "كل ما في هذا القسم",
-  "noMatchingProducts": "لا توجد منتجات مطابقة. جرّب قسمًا آخر أو بحثًا مختلفًا."
+  "noMatchingProducts": "لا توجد منتجات مطابقة. جرّب قسمًا آخر أو بحثًا مختلفًا.",
+  "scanRingCode": "امسح رمز الخاتم",
+  "scanCancel": "إلغاء",
+  "scanTypeInstead": "اكتب الرقم التسلسلي بدلًا من ذلك",
+  "scanTorchOn": "تشغيل الإضاءة",
+  "scanTorchOff": "إطفاء الإضاءة"
 }

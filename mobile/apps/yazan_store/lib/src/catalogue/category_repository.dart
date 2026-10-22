@@ -133,7 +133,7 @@ class CategoryRepository {
 
 /// Downloads the category list from the public `sync/terms` route (works signed out).
 Future<List<Map<String, dynamic>>> fetchCategories(YazanApiClient client) async {
-  final body = await client.getJson('/yazan-mobile/v1/sync/terms', optionalAuth: true);
+  final body = await client.syncTerms();
   final raw = body['categories'];
   return [
     if (raw is List)

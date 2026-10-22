@@ -88,6 +88,7 @@ class MemoryAdminStores implements AdminStores {
     for (final f in _feeds.values) {
       f.rows.clear();
       f.cursor = '';
+      f.meta.clear();
     }
   }
 }
@@ -125,7 +126,10 @@ class _WipeGate {
 
 /// A feed that stops accepting pages once its stores were wiped. A refresh that was still in flight
 /// when the person signed out would otherwise write its next page back after the wipe.
-class _GuardedFeedStore implements FeedStore {
+///
+/// Feed metadata (`FeedMeta.readMeta` / `writeMeta`) is passed through to the wrapped store, and
+/// is equally refused after the wipe; over a store without metadata it stores nothing.
+class _GuardedFeedStore implements FeedStore, FeedMetaStore {
   _GuardedFeedStore(this._inner, this._gate);
 
   final FeedStore _inner;
@@ -133,6 +137,15 @@ class _GuardedFeedStore implements FeedStore {
 
   @override
   Future<String> readCursor() => _inner.readCursor();
+
+  @override
+  Future<String?> readMeta(String key) => _inner.readMeta(key);
+
+  @override
+  Future<void> writeMeta(String key, String? value) async {
+    if (_gate.closed) return;
+    await _inner.writeMeta(key, value);
+  }
 
   @override
   Future<List<Map<String, dynamic>>> readAll() => _inner.readAll();

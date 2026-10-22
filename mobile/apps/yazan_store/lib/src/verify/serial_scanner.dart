@@ -1,5 +1,7 @@
 import 'package:flutter/widgets.dart';
 
+import 'mobile_serial_scanner.dart';
+
 /// A QR scanner the verification screen can show.
 ///
 /// Scanning needs the camera, which is a native plugin the unit tests cannot run, so the screen
@@ -17,9 +19,8 @@ abstract class SerialScanner {
   });
 }
 
-/// The scanner the app ships with, or null when it has none.
+/// The scanner the app ships with: the camera one ([MobileSerialScanner]).
 ///
-/// No camera plugin is part of the app yet (see docs/mobile/03-ARCHITECTURE.md, section 5), so this
-/// is null and the verification screen offers typing the serial only. Wiring a real scanner in
-/// later means returning it from here; no screen changes.
-SerialScanner? defaultSerialScanner() => null;
+/// Typing the serial stays available next to it, and is what the customer is sent back to when the
+/// camera cannot be used (permission refused, no camera).
+SerialScanner? defaultSerialScanner() => const MobileSerialScanner();

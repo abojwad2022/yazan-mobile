@@ -9,7 +9,9 @@ import 'package:yazan_admin/src/products/product_summary.dart';
 import 'package:yazan_admin/src/products/products_format.dart';
 import 'package:yazan_admin/src/products/products_list_page.dart';
 import 'package:yazan_admin/src/products/products_repository.dart';
+import 'package:yazan_admin/src/storage/admin_stores.dart';
 import 'package:yazan_domain/yazan_domain.dart';
+import 'package:yazan_offline_sync/yazan_offline_sync.dart';
 
 import '../orders/fakes.dart' show KeySeq;
 import 'fakes.dart';
@@ -139,6 +141,33 @@ void main() {
       final repo = ProductsRepository(fetch: (_) async => throw Exception('offline'), clock: () => now);
       await repo.refresh();
       expect(repo.lastSyncedAt, isNull);
+    });
+
+    test('a complete pull is stored as synced_at feed metadata, and purge removes it', () async {
+      final store = MemoryFeedStore();
+      final repo = ProductsRepository(store: store, fetch: (_) async => page(), clock: () => now);
+      await repo.refresh();
+      expect(store.meta[ProductsRepository.syncedAtKey], now.toIso8601String());
+      await repo.purge();
+      expect(store.meta.containsKey(ProductsRepository.syncedAtKey), isFalse);
+    });
+
+    test('a pull cut short by the page budget stores no synced_at', () async {
+      final store = MemoryFeedStore();
+      final repo = ProductsRepository(store: store, fetch: (_) async => page(more: true), clock: () => now);
+      await repo.refresh();
+      expect(repo.lastSyncedAt, isNull);
+      expect(store.meta, isEmpty);
+    });
+
+    test('the guarded admin feed passes synced_at through to the stored feed', () async {
+      final stores = MemoryAdminStores();
+      final feed = stores.feed(AdminFeeds.products);
+      final repo = ProductsRepository(store: feed, fetch: (_) async => page(), clock: () => now);
+      await repo.refresh();
+      expect(await feed.readMeta(ProductsRepository.syncedAtKey), now.toIso8601String());
+      await stores.wipe();
+      expect(await feed.readMeta(ProductsRepository.syncedAtKey), isNull);
     });
   });
 

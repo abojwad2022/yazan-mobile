@@ -32,6 +32,13 @@ class _ScanSerialPageState extends State<ScanSerialPage> {
     Navigator.of(context).pop(serial);
   }
 
+  /// Closes with no serial. Ignored once a code has already closed the screen.
+  void _cancel() {
+    if (_done || !mounted) return;
+    _done = true;
+    Navigator.of(context).pop();
+  }
+
   void _onError(Object error) {
     if (!mounted || _cameraFailed) return;
     setState(() => _cameraFailed = true);
@@ -46,7 +53,17 @@ class _ScanSerialPageState extends State<ScanSerialPage> {
       body = Center(
         child: Padding(
           padding: const EdgeInsetsDirectional.all(32),
-          child: Text(l.scanUnavailable, textAlign: TextAlign.center),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(l.scanUnavailable, textAlign: TextAlign.center),
+              const SizedBox(height: 16),
+              FilledButton(
+                onPressed: _cancel,
+                child: Text(l.scanTypeInstead),
+              ),
+            ],
+          ),
         ),
       );
     } else {
@@ -55,12 +72,28 @@ class _ScanSerialPageState extends State<ScanSerialPage> {
           Expanded(
             child: widget.scanner.buildPreview(context, onCode: _onCode, onError: _onError),
           ),
-          Padding(
-            padding: const EdgeInsetsDirectional.all(16),
-            child: Text(
-              _notSerial ? l.scanNotSerial : l.scanQrHelp,
-              textAlign: TextAlign.center,
-              style: _notSerial ? TextStyle(color: theme.colorScheme.error) : null,
+          SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsetsDirectional.fromSTEB(16, 16, 16, 8),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Semantics(
+                    liveRegion: _notSerial,
+                    child: Text(
+                      _notSerial ? l.scanNotSerial : l.scanQrHelp,
+                      textAlign: TextAlign.center,
+                      style: _notSerial ? TextStyle(color: theme.colorScheme.error) : null,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextButton(
+                    onPressed: _cancel,
+                    child: Text(l.scanCancel),
+                  ),
+                ],
+              ),
             ),
           ),
         ],

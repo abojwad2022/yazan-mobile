@@ -130,6 +130,55 @@ void main() {
       expect(repo.lastSyncedAt, stamp);
       expect([for (final p in await repo.products()) p.name], ['Keep']);
     });
+
+    test('a successful refresh stores synced_at (UTC) as feed metadata', () async {
+      final store = MemoryFeedStore();
+      final now = DateTime.utc(2026, 10, 20, 12);
+      final repo = CatalogueRepository(store: store, fetch: (cursor) async => _page([_record(1, 'A')]), clock: () => now);
+      await repo.refresh();
+      expect(store.meta[CatalogueRepository.syncedAtKey], '2026-10-20T12:00:00.000Z');
+    });
+
+    test('a failed refresh stores no synced_at', () async {
+      final store = MemoryFeedStore();
+      final repo = CatalogueRepository(store: store, fetch: (cursor) async => throw Exception('offline'));
+      await expectLater(repo.refresh(), throwsException);
+      expect(store.meta, isEmpty);
+    });
+
+    test('a first sync over rows without a cursor keeps them until the new catalogue is complete', () async {
+      // An older install: rows on disk but no cursor.
+      final store = MemoryFeedStore()..rows[9] = _record(9, 'Old');
+      var failSecondPage = true;
+      final repo = CatalogueRepository(
+        store: store,
+        fetch: (cursor) async {
+          if (cursor.isEmpty) {
+            return DeltaPage(items: [_record(1, 'New')], cursor: 'p1', hasMore: true, initial: true);
+          }
+          if (failSecondPage) throw Exception('offline');
+          return DeltaPage(items: [_record(2, 'Newer')], cursor: 'c2', hasMore: false, initial: false);
+        },
+      );
+
+      await expectLater(repo.refresh(), throwsException);
+      expect([for (final p in await repo.products()) p.name], ['Old']);
+      expect(store.cursor, '');
+
+      failSecondPage = false;
+      await repo.refresh();
+      expect([for (final p in await repo.products()) p.name], ['New', 'Newer']);
+      expect(store.cursor, 'c2');
+    });
+
+    test('a store without metadata support still refreshes', () async {
+      final repo = CatalogueRepository(
+        store: _ListStore([_record(1, 'Agate')]),
+        fetch: (cursor) async => _page([_record(1, 'Agate')]),
+      );
+      await repo.refresh();
+      expect(repo.lastSyncedAt, isNotNull);
+    });
   });
 
   group('variations (ring sizes)', () {

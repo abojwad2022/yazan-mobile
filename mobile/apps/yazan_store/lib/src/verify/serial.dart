@@ -1,3 +1,5 @@
+import '../config.dart';
+
 /// The shortest serial the server's route accepts (`/yazan-mobile/v1/verify/{serial}`).
 const int serialMinLength = 3;
 
@@ -10,8 +12,16 @@ const int serialMaxLength = 40;
 /// Two conveniences on top: Arabic-Indic digits become ordinary digits and the dash characters that
 /// copy and paste bring in become a plain hyphen, so a serial typed on an Arabic keyboard still matches.
 String cleanSerial(String raw) {
+  final cleaned =
+      _latinDigitsAndHyphens(raw.trim()).toUpperCase().replaceAll(RegExp(r'[^A-Z0-9\-]'), '');
+  return cleaned.length > serialMaxLength ? cleaned.substring(0, serialMaxLength) : cleaned;
+}
+
+/// Arabic-Indic and Eastern Arabic-Indic digits become ordinary digits, and the dash characters that
+/// copy and paste bring in become a plain hyphen. Everything else is left as it is.
+String _latinDigitsAndHyphens(String s) {
   final out = StringBuffer();
-  for (final rune in raw.trim().runes) {
+  for (final rune in s.runes) {
     var r = rune;
     if (r >= 0x0660 && r <= 0x0669) {
       r = 0x30 + (r - 0x0660);
@@ -22,41 +32,66 @@ String cleanSerial(String raw) {
     }
     out.writeCharCode(r);
   }
-  final cleaned = out.toString().toUpperCase().replaceAll(RegExp(r'[^A-Z0-9\-]'), '');
-  return cleaned.length > serialMaxLength ? cleaned.substring(0, serialMaxLength) : cleaned;
+  return out.toString();
 }
 
-/// Reads the serial out of what a QR code held: either the serial itself, or the address of the
-/// verification page (`.../verify-ring/{serial}/`, or a `serial` / `yz_serial` query value).
+/// The host of the site this build talks to (`YAZAN_BASE_URL`), so a staging or local build also
+/// accepts the codes its own site prints. Null when the setting is not an address.
+String? _configuredHost() {
+  final host = Uri.tryParse(AppConfig.baseUrl)?.host.toLowerCase() ?? '';
+  return host.isEmpty ? null : host;
+}
+
+bool _isYazanHost(String host, String? siteHost) {
+  final h = host.toLowerCase();
+  if (h == 'yazanus.com' || h.endsWith('.yazanus.com')) return true;
+  return siteHost != null && siteHost.isNotEmpty && h == siteHost.toLowerCase();
+}
+
+/// Reads the serial out of what a QR code or barcode held: either the serial itself, or the address
+/// of YAZAN's verification page (`yazanus.com/verify-ring/{serial}/`, or its `yz_serial` / `serial`
+/// query value).
 ///
-/// Returns null when the code is anything else, so a stray QR code (a Wi-Fi login, a shop sign) is
-/// never sent to the server as if it were a serial.
-String? serialFromScan(String raw) {
+/// Returns null when the code is anything else, so a stray code (a Wi-Fi login, a shop sign, another
+/// site's verification page) is never sent to the server as if it were a serial. Arabic-Indic digits
+/// and pasted dashes are accepted the same way [cleanSerial] accepts them; nothing else is "cleaned"
+/// into a serial.
+///
+/// [siteHost] is the one host besides `yazanus.com` (and its subdomains) whose addresses count; it
+/// defaults to the host of the build's `YAZAN_BASE_URL`.
+String? serialFromScan(String raw, {String? siteHost}) {
   final text = raw.trim();
   if (text.isEmpty || text.length > 2048) return null;
-  final looksLikeAddress = text.contains('://') || text.toLowerCase().startsWith('www.');
+  // A serial is letters, digits and hyphens only, so anything with a slash or a scheme is an address.
+  final looksLikeAddress = text.contains('://') || text.contains('/');
   if (!looksLikeAddress) return _plainSerial(text);
   try {
     final uri = Uri.tryParse(text.contains('://') ? text : 'https://$text');
     if (uri == null) return null;
-    for (final key in const ['serial', 'yz_serial']) {
-      final value = uri.queryParameters[key];
-      if (value != null) return _plainSerial(value);
-    }
+    if (uri.scheme != 'https' && uri.scheme != 'http') return null;
+    if (!_isYazanHost(uri.host, siteHost ?? _configuredHost())) return null;
     final segments = [
       for (final s in uri.pathSegments)
         if (s.isNotEmpty) s,
     ];
     final at = segments.indexWhere((s) => s.toLowerCase() == 'verify-ring');
-    if (at >= 0 && at + 1 < segments.length) return _plainSerial(segments[at + 1]);
+    if (at < 0) return null;
+    for (final key in const ['yz_serial', 'serial']) {
+      final value = uri.queryParameters[key];
+      if (value != null) return _plainSerial(value);
+    }
+    // Exactly one segment after verify-ring: `/verify-ring/{serial}/`, nothing deeper.
+    if (at + 2 == segments.length) return _plainSerial(segments[at + 1]);
+    return null;
   } on FormatException {
+    // Broken percent-encoding in the path or query.
     return null;
   }
-  return null;
 }
 
 String? _plainSerial(String s) {
-  final t = s.trim();
-  if (!RegExp(r'^[A-Za-z0-9\-]{3,40}$').hasMatch(t)) return null;
+  final t = _latinDigitsAndHyphens(s.trim());
+  if (t.length < serialMinLength || t.length > serialMaxLength) return null;
+  if (!RegExp(r'^[A-Za-z0-9\-]+$').hasMatch(t)) return null;
   return t.toUpperCase();
 }

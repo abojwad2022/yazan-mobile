@@ -22,12 +22,23 @@ class CatalogueRepository {
 
   DateTime? _lastSyncedAt;
 
+  /// The feed metadata key the time of the last successful refresh is stored under (UTC, ISO 8601).
+  static const syncedAtKey = 'synced_at';
+
   /// When the last refresh succeeded, or null if none has in this session.
   DateTime? get lastSyncedAt => _lastSyncedAt;
 
+  /// A first sync (no cursor yet) is staged and swapped in whole once the last page arrived, so an
+  /// older install's rows stay on screen until the new catalogue is complete.
   Future<void> refresh() async {
-    await pullFeed(fetch: _fetch, store: _store);
-    _lastSyncedAt = _clock();
+    await pullFeed(fetch: _fetch, store: _store, replaceOnFirstSuccess: true);
+    final now = _clock();
+    _lastSyncedAt = now;
+    try {
+      await _store.writeMeta(syncedAtKey, now.toUtc().toIso8601String());
+    } on Exception {
+      // The products are already saved; without the stamp only the stored sync time is missing.
+    }
   }
 
   /// Cached products sorted by name, read straight from the store (works after a restart).

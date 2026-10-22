@@ -62,6 +62,17 @@ void main() {
       expect(await inFlight.readCursor(), '');
     });
 
+    test('feed metadata reaches the account store, and is refused after the wipe', () async {
+      final feed = a.feed(AdminFeeds.products);
+      await feed.writeMeta('synced_at', '2026-10-20T12:00:00.000Z');
+      expect(storage.raw(a.accountId, AdminFeeds.products).meta['synced_at'], '2026-10-20T12:00:00.000Z');
+      expect(await b.feed(AdminFeeds.products).readMeta('synced_at'), isNull);
+
+      await a.wipe();
+      await feed.writeMeta('synced_at', '2026-10-21T12:00:00.000Z');
+      expect(await feed.readMeta('synced_at'), isNull);
+    });
+
     test('wiping twice is harmless', () async {
       await a.wipe();
       await a.wipe();

@@ -44,6 +44,20 @@ ip=ios/Runner/Info.plist
 grep -q 'NSFaceIDUsageDescription' "$ip" || perl -0pi -e 's/<\/dict>(\s*<\/plist>)/\t<key>NSFaceIDUsageDescription<\/key>\n\t<string>Unlock the app with Face ID.<\/string>\n<\/dict>$1/' "$ip"
 grep -q 'NSFaceIDUsageDescription' "$ip" \
   || { echo "scaffold: could not add NSFaceIDUsageDescription to $ip" >&2; exit 1; }
+# Ring check QR scanner (mobile_scanner, Store app only): camera permission, the camera marked optional so
+# phones without one can still install the app (typing the serial works there), and the iOS prompt text.
+# Idempotent; fails loudly if a template changed.
+if [ "$pkg" = "yazan_store" ]; then
+  grep -q 'android.permission.CAMERA' "$m" || perl -0pi -e 's/(<manifest[^>]*>)/$1\n    <uses-permission android:name="android.permission.CAMERA"\/>/' "$m"
+  grep -q 'android.permission.CAMERA' "$m" \
+    || { echo "scaffold: could not add CAMERA to $m" >&2; exit 1; }
+  grep -q 'android.hardware.camera"' "$m" || perl -0pi -e 's/(<manifest[^>]*>)/$1\n    <uses-feature android:name="android.hardware.camera" android:required="false"\/>/' "$m"
+  grep -q 'android.hardware.camera" android:required="false"' "$m" \
+    || { echo "scaffold: could not mark the camera optional in $m" >&2; exit 1; }
+  grep -q 'NSCameraUsageDescription' "$ip" || perl -0pi -e 's/<\/dict>(\s*<\/plist>)/\t<key>NSCameraUsageDescription<\/key>\n\t<string>The camera reads the QR code on your YAZAN ring certificate to check the ring.<\/string>\n<\/dict>$1/' "$ip"
+  grep -q 'NSCameraUsageDescription' "$ip" \
+    || { echo "scaffold: could not add NSCameraUsageDescription to $ip" >&2; exit 1; }
+fi
 export LABEL="$label"
 # What the home screen shows under the icon.
 perl -pi -e 's/android:label="[^"]*"/android:label="$ENV{LABEL}"/' android/app/src/main/AndroidManifest.xml

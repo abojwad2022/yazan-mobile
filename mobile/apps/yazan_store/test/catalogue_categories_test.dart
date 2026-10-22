@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:yazan_api_client/yazan_api_client.dart';
 import 'package:yazan_offline_sync/yazan_offline_sync.dart';
 import 'package:yazan_store/l10n/app_localizations.dart';
 import 'package:yazan_store/src/catalogue/catalogue_list_page.dart';
@@ -10,6 +11,22 @@ import 'package:yazan_store/src/catalogue/product.dart';
 import 'package:yazan_store/src/catalogue/product_page.dart';
 
 import 'fixtures/catalogue_fixtures.dart';
+import 'fixtures/scripted_client.dart';
+
+/// Records the GETs the code under test makes and answers them with [body].
+class _TermsClient extends ScriptedClient {
+  _TermsClient(super.t);
+
+  Map<String, dynamic> body = const {};
+  final List<String> requests = [];
+
+  @override
+  Future<Map<String, dynamic>> getJson(String path,
+      {Map<String, dynamic>? query, bool optionalAuth = false}) async {
+    requests.add('$path optionalAuth=$optionalAuth');
+    return body;
+  }
+}
 
 /// `GET /sync/terms` rows as the server sends them.
 Map<String, dynamic> _term(int id, String name, {int parent = 0, int count = 1}) =>
@@ -114,6 +131,16 @@ void main() {
       rows = [_term(4, 'Gifts')];
       await repo.refresh();
       expect([for (final c in await repo.categories()) c.id], [4]);
+    });
+
+    test('fetchCategories reads the public sync/terms route through client.syncTerms', () async {
+      final client = _TermsClient(MemoryTokenStore())
+        ..body = {
+          'categories': [_term(1, 'Rings'), 'not a row', _term(4, 'Gifts')],
+        };
+      final rows = await fetchCategories(client);
+      expect([for (final r in rows) r['id']], [1, 4]);
+      expect(client.requests, ['/yazan-mobile/v1/sync/terms optionalAuth=true']);
     });
   });
 

@@ -182,5 +182,10 @@
   "searchHint": "Search rings",
   "allCategories": "All",
   "allInCategory": "All in this category",
-  "noMatchingProducts": "No products match. Try another category or search."
+  "noMatchingProducts": "No products match. Try another category or search.",
+  "scanRingCode": "Scan the ring's code",
+  "scanCancel": "Cancel",
+  "scanTypeInstead": "Type the serial instead",
+  "scanTorchOn": "Turn on the light",
+  "scanTorchOff": "Turn off the light"
 }

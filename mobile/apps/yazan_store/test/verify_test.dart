@@ -4,7 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:yazan_api_client/yazan_api_client.dart';
 import 'package:yazan_domain/yazan_domain.dart';
 import 'package:yazan_store/l10n/app_localizations.dart';
+import 'package:yazan_store/src/verify/mobile_serial_scanner.dart';
 import 'package:yazan_store/src/verify/serial.dart';
+import 'package:yazan_store/src/verify/serial_scanner.dart';
 import 'package:yazan_store/src/verify/verify_api.dart';
 import 'package:yazan_store/src/verify/verify_models.dart';
 import 'package:yazan_store/src/verify/verify_page.dart';
@@ -22,6 +24,13 @@ Widget _app(Widget home, Locale locale) => MaterialApp(
       supportedLocales: AppLocalizations.supportedLocales,
       home: home,
     );
+
+/// Lets a route push or pop finish and the page react, without pumpAndSettle.
+Future<void> _pumpRoute(WidgetTester tester) async {
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 500));
+  await tester.pump();
+}
 
 Future<void> _check(WidgetTester tester, String typed) async {
   await tester.enterText(find.byType(TextField), typed);
@@ -66,6 +75,44 @@ void main() {
       expect(serialFromScan('https://yazanus.com/verify-ring/'), isNull);
       expect(serialFromScan('has a space inside'), isNull);
       expect(serialFromScan('A' * 41), isNull);
+    });
+
+    test('Arabic-Indic digits and pasted dashes are read like the typed field reads them', () {
+      expect(serialFromScan('YZ-٩٢٥-٢٠٢٦-٠٠٠١٢'), 'YZ-925-2026-00012');
+      expect(serialFromScan('yz-۹۲۵-۲۰۲۶'), 'YZ-925-2026');
+      expect(serialFromScan('YZ–925—00012'), 'YZ-925-00012');
+      expect(serialFromScan('https://yazanus.com/verify-ring/YZ-٩٢٥-٢٠٢٦/'), 'YZ-925-2026');
+    });
+
+    test('subdomains of yazanus.com count, and so does the site this build talks to', () {
+      expect(serialFromScan('https://shop.yazanus.com/verify-ring/abc-123'), 'ABC-123');
+      expect(serialFromScan('HTTPS://YAZANUS.COM/verify-ring/abc-123'), 'ABC-123');
+      expect(serialFromScan('yazanus.com/verify-ring/abc-123'), 'ABC-123');
+      expect(serialFromScan('https://ar.yazanus.com/ar/verify-ring/abc-123/'), 'ABC-123');
+      expect(serialFromScan('http://yazan.test/verify-ring/abc-123/', siteHost: 'yazan.test'), 'ABC-123');
+      expect(serialFromScan('http://yazan.test/verify-ring/abc-123/'), isNull);
+    });
+
+    test('another site, another page, another scheme or a junk serial in the address is refused', () {
+      // Somebody else's verification page, even one that looks like ours.
+      expect(serialFromScan('https://example.com/verify-ring/YZ-925-2026-00012/'), isNull);
+      expect(serialFromScan('https://yazanus.com.evil.example/verify-ring/abc-123'), isNull);
+      expect(serialFromScan('https://evil.example/yazanus.com/verify-ring/abc-123'), isNull);
+      expect(serialFromScan('https://notyazanus.com/verify-ring/abc-123'), isNull);
+      // Our site, but not the verification page.
+      expect(serialFromScan('https://yazanus.com/product/carnelian-signet/'), isNull);
+      expect(serialFromScan('https://yazanus.com/?yz_serial=abc-123'), isNull);
+      expect(serialFromScan('https://yazanus.com/verify-ring/abc-123/extra'), isNull);
+      // Not a web address.
+      expect(serialFromScan('ftp://yazanus.com/verify-ring/abc-123'), isNull);
+      expect(serialFromScan('javascript://yazanus.com/verify-ring/abc-123'), isNull);
+      // The serial in the address must itself be a serial.
+      expect(serialFromScan('https://yazanus.com/verify-ring/ab/'), isNull);
+      expect(serialFromScan('https://yazanus.com/verify-ring/abc%20123/'), isNull);
+      expect(serialFromScan('https://yazanus.com/verify-ring/?yz_serial=%3Cscript%3E'), isNull);
+      expect(serialFromScan('https://yazanus.com/verify-ring/%E0%A4%A/'), isNull);
+      expect(serialFromScan('YZ/925'), isNull);
+      expect(serialFromScan('https://yazanus.com/verify-ring/${'A' * 41}/'), isNull);
     });
   });
 
@@ -226,7 +273,7 @@ void main() {
 
     testWidgets('no scan button when the app has no scanner', (tester) async {
       await tester.pumpWidget(_app(VerifyPage(api: FakeVerifyApi()), const Locale('en')));
-      expect(find.text('Scan QR code'), findsNothing);
+      expect(find.text("Scan the ring's code"), findsNothing);
       expect(find.byType(TextField), findsOneWidget);
     });
   });
@@ -237,7 +284,7 @@ void main() {
       final scanner = FakeSerialScanner();
       await tester.pumpWidget(_app(VerifyPage(api: api, scanner: scanner), const Locale('en')));
 
-      await tester.tap(find.text('Scan QR code'));
+      await tester.tap(find.text("Scan the ring's code"));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('fake-camera-preview')), findsOneWidget);
       expect(find.text('Point the camera at the QR code on your certificate.'), findsOneWidget);
@@ -256,7 +303,7 @@ void main() {
       final api = FakeVerifyApi();
       final scanner = FakeSerialScanner();
       await tester.pumpWidget(_app(VerifyPage(api: api, scanner: scanner), const Locale('en')));
-      await tester.tap(find.text('Scan QR code'));
+      await tester.tap(find.text("Scan the ring's code"));
       await tester.pumpAndSettle();
 
       scanner.emit('WIFI:S:home;T:WPA;P:secret;;');
@@ -274,7 +321,7 @@ void main() {
     testWidgets('no camera: says so and leaves typing available', (tester) async {
       final scanner = FakeSerialScanner();
       await tester.pumpWidget(_app(VerifyPage(api: FakeVerifyApi(), scanner: scanner), const Locale('en')));
-      await tester.tap(find.text('Scan QR code'));
+      await tester.tap(find.text("Scan the ring's code"));
       await tester.pumpAndSettle();
 
       scanner.fail();
@@ -289,12 +336,102 @@ void main() {
     testWidgets('going back from the camera changes nothing', (tester) async {
       final api = FakeVerifyApi();
       await tester.pumpWidget(_app(VerifyPage(api: api, scanner: FakeSerialScanner()), const Locale('en')));
-      await tester.tap(find.text('Scan QR code'));
+      await tester.tap(find.text("Scan the ring's code"));
       await tester.pumpAndSettle();
       await tester.pageBack();
       await tester.pumpAndSettle();
       expect(api.calls, isEmpty);
       expect(find.text('Genuine YAZAN ring'), findsNothing);
+    });
+
+    test('the app ships the camera scanner', () {
+      expect(defaultSerialScanner(), isA<MobileSerialScanner>());
+    });
+
+    // The tests below step frames by hand (no pumpAndSettle): the page shows a spinner while it checks.
+
+    testWidgets('the scanner returns a value: the serial fills the field and is checked once',
+        (tester) async {
+      final api = FakeVerifyApi();
+      final scanner = FakeSerialScanner();
+      await tester.pumpWidget(_app(VerifyPage(api: api, scanner: scanner), const Locale('en')));
+      await tester.pump();
+
+      await tester.tap(find.text("Scan the ring's code"));
+      await _pumpRoute(tester);
+      expect(find.byKey(const Key('fake-camera-preview')), findsOneWidget);
+      expect(find.text('Cancel'), findsOneWidget);
+
+      // Arabic-Indic digits as a phone might print them: read like the typed field reads them.
+      scanner.emit('YZ-٩٢٥-٢٠٢٦-٠٠٠١٢');
+      scanner.emit('YZ-٩٢٥-٢٠٢٦-٠٠٠١٢');
+      await _pumpRoute(tester);
+
+      expect(find.byKey(const Key('fake-camera-preview')), findsNothing);
+      expect(api.calls, ['YZ-925-2026-00012']);
+      expect(tester.widget<TextField>(find.byType(TextField)).controller!.text, 'YZ-925-2026-00012');
+      expect(find.text('Genuine YAZAN ring'), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+    });
+
+    testWidgets('the scanner returns nothing (Cancel): nothing is checked and the field is untouched',
+        (tester) async {
+      final api = FakeVerifyApi();
+      final scanner = FakeSerialScanner();
+      await tester.pumpWidget(_app(VerifyPage(api: api, scanner: scanner), const Locale('en')));
+      await tester.enterText(find.byType(TextField), 'YZ-1');
+      await tester.pump();
+
+      await tester.tap(find.text("Scan the ring's code"));
+      await _pumpRoute(tester);
+      await tester.tap(find.text('Cancel'));
+      await _pumpRoute(tester);
+
+      expect(find.byKey(const Key('fake-camera-preview')), findsNothing);
+      expect(api.calls, isEmpty);
+      expect(tester.widget<TextField>(find.byType(TextField)).controller!.text, 'YZ-1');
+      expect(find.text('Genuine YAZAN ring'), findsNothing);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+
+      // A code the camera reads after the screen closed is ignored.
+      scanner.emit('YZ-925-2026-00012');
+      await tester.pump();
+      expect(api.calls, isEmpty);
+    });
+
+    testWidgets('camera refused: "Type the serial instead" goes back to the field, scanning still offered',
+        (tester) async {
+      final api = FakeVerifyApi();
+      final scanner = FakeSerialScanner();
+      await tester.pumpWidget(_app(VerifyPage(api: api, scanner: scanner), const Locale('en')));
+      await tester.pump();
+
+      await tester.tap(find.text("Scan the ring's code"));
+      await _pumpRoute(tester);
+      scanner.fail();
+      await tester.pump();
+      expect(find.text('The camera is not available. Type the serial number instead.'), findsOneWidget);
+      expect(find.byKey(const Key('fake-camera-preview')), findsNothing);
+
+      await tester.tap(find.text('Type the serial instead'));
+      await _pumpRoute(tester);
+      expect(find.byType(TextField), findsOneWidget);
+      expect(find.text("Scan the ring's code"), findsOneWidget);
+      expect(api.calls, isEmpty);
+    });
+
+    testWidgets('Arabic: the scan button and the camera screen are translated', (tester) async {
+      final scanner = FakeSerialScanner();
+      await tester.pumpWidget(_app(VerifyPage(api: FakeVerifyApi(), scanner: scanner), const Locale('ar')));
+      await tester.pump();
+
+      await tester.tap(find.text('امسح رمز الخاتم'));
+      await _pumpRoute(tester);
+      expect(find.text('إلغاء'), findsOneWidget);
+
+      scanner.emit('https://example.com/verify-ring/YZ-925-2026-00012/');
+      await tester.pump();
+      expect(find.text('هذا الرمز ليس رقمًا تسلسليًا من يزن. جرّب رمزًا آخر أو اكتب الرقم.'), findsOneWidget);
     });
   });
 

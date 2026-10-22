@@ -175,7 +175,7 @@ class _VerifyPageState extends State<VerifyPage> {
             OutlinedButton.icon(
               onPressed: loading ? null : _scan,
               icon: const Icon(Icons.qr_code_scanner),
-              label: Text(l.scanQr),
+              label: Text(l.scanRingCode),
             ),
           ],
           const SizedBox(height: 24),

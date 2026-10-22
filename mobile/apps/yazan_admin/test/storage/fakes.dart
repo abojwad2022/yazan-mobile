@@ -36,6 +36,7 @@ class FakeAccountStorage implements AccountStorage {
       if (e.key.startsWith('$accountId|')) {
         e.value.rows.clear();
         e.value.cursor = '';
+        e.value.meta.clear();
       }
     }
     await _outbox.clearAccount(accountId);

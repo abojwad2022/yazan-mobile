@@ -12,6 +12,7 @@ import 'catalogue/catalogue_repository.dart';
 import 'catalogue/category_repository.dart';
 import 'catalogue/product.dart';
 import 'extras/extras_menu.dart';
+import 'links.dart';
 import 'session_scope.dart';
 import 'wishlist/wishlist_controller.dart';
 import 'wishlist/wishlist_page.dart';
@@ -24,6 +25,8 @@ class HomePage extends StatefulWidget {
     required this.accountApi,
     required this.onSignOut,
     required this.onSessionEnded,
+    this.onAccountDeleted,
+    this.openLink = openInBrowser,
     this.repository,
     this.categories,
   });
@@ -38,6 +41,12 @@ class HomePage extends StatefulWidget {
 
   /// The server says the session is over: carry on as a guest.
   final VoidCallback onSessionEnded;
+
+  /// The customer deleted the account: wipe their data on the phone and carry on as a guest.
+  final VoidCallback? onAccountDeleted;
+
+  /// Opens pages of the website outside the app.
+  final LinkOpener openLink;
 
   /// Injected by tests; the app builds one over the live client.
   final CatalogueRepository? repository;
@@ -119,6 +128,9 @@ class _HomePageState extends State<HomePage> {
           findProduct: _findProduct,
           onSignOut: widget.onSignOut,
           onSessionEnded: _sessionEnded,
+          onAccountDeleted: widget.onAccountDeleted,
+          websiteUrl: widget.client.baseUrl,
+          openLink: widget.openLink,
         ),
       ),
     );

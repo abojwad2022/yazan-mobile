@@ -99,6 +99,7 @@ void main() {
       expect(e('yazan_mobile_bad_refresh').action, ErrorAction.signIn);
       expect(e('yazan_precondition_failed').action, ErrorAction.showConflict);
       expect(e('yazan_rate_limited').action, ErrorAction.backOff);
+      expect(e('yazan_mobile_slow_down').action, ErrorAction.backOff);
       expect(e('nope').action, ErrorAction.other);
     });
     test('reads retry_after and current', () {

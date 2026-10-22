@@ -12,6 +12,7 @@ import 'package:yazan_store/src/wishlist/wishlist_mirror.dart';
 import 'fixtures/account_fakes.dart';
 import 'fixtures/catalogue_fixtures.dart';
 import 'fixtures/scripted_client.dart';
+import 'fixtures/sign_in_steps.dart';
 import 'fixtures/store_cart.dart';
 
 Future<void> _pump(
@@ -34,21 +35,15 @@ Future<void> _pump(
   await tester.pumpAndSettle();
 }
 
-/// A guest reaches the (optional) sign-in form through the Account entry in the app bar.
+/// A guest reaches the (optional) sign-in screen through the Account entry in the app bar.
 Future<void> _openSignIn(WidgetTester tester) async {
   await tester.tap(find.byTooltip('Account'));
   await tester.pumpAndSettle();
-  // The website sign-in leads; the in-app email form opens under it.
-  await tester.tap(find.text('Sign in with email here'));
-  await tester.pumpAndSettle();
 }
 
-Future<void> _signInAs(WidgetTester tester, String email) async {
-  await tester.enterText(find.byType(TextField).at(0), email);
-  await tester.enterText(find.byType(TextField).at(1), 'secret-password');
-  await tester.tap(find.widgetWithText(FilledButton, 'Sign in'));
-  await tester.pumpAndSettle();
-}
+/// Email, Continue (the scripted lookup finds the account), password, Sign in.
+Future<void> _signInAs(WidgetTester tester, String email) =>
+    signInWithEmail(tester, email: email);
 
 void main() {
   group('sign-in', () {

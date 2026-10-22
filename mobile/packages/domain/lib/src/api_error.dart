@@ -71,6 +71,7 @@ class ApiError implements Exception {
       case 'yazan_precondition_required':
         return ErrorAction.clientBug;
       case 'yazan_rate_limited':
+      case 'yazan_mobile_slow_down':
         return ErrorAction.backOff;
     }
     return ErrorAction.other;

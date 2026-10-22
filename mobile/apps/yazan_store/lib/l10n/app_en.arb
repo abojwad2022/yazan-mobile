@@ -188,12 +188,73 @@
   "scanTypeInstead": "Type the serial instead",
   "scanTorchOn": "Turn on the light",
   "scanTorchOff": "Turn off the light",
-  "webSignIn": "Sign in or create account",
-  "webSignInHint": "Opens the YAZAN website in a secure window, where you can sign in the way you usually do or create a new account.",
-  "signInWithEmailHere": "Sign in with email here",
   "webSignInExpired": "Sign-in expired, please try again.",
   "webSignInFailed": "Sign-in did not finish. Please try again.",
   "websiteNotUpdated": "The website is not updated for the app yet. Please try again later.",
   "signInConnection": "Could not reach the website. Check your connection and try again.",
-  "signInUnexpected": "Something went wrong. Please try again."
+  "signInUnexpected": "Something went wrong. Please try again.",
+  "welcomeTitle": "Welcome to YAZAN",
+  "welcomeSubtitle": "Sign in or create your account with your email.",
+  "continueWithGoogle": "Continue with Google",
+  "continueWithApple": "Continue with Apple",
+  "orDivider": "or",
+  "continueAction": "Continue",
+  "consentLine": "By continuing you agree to the Terms and the Privacy Policy.",
+  "termsLink": "Terms and conditions",
+  "privacyLink": "Privacy policy",
+  "otherWaysToSignIn": "Other ways to sign in",
+  "welcomeBack": "Welcome back",
+  "changeEmail": "Change",
+  "showPassword": "Show password",
+  "hidePassword": "Hide password",
+  "forgotPassword": "Forgot password?",
+  "noPasswordYet": "This account has no password yet. Choose Forgot password to set one.",
+  "createAccountTitle": "Create your YAZAN account",
+  "newPassword": "Create a password",
+  "passwordTooShort": "Use at least 8 characters.",
+  "passwordHintShort": "At least 8 characters.",
+  "passwordHintFair": "Good. A longer phrase is stronger.",
+  "passwordHintStrong": "Strong password.",
+  "marketingOptIn": "Email me about new pieces and private offers",
+  "createAccount": "Create account",
+  "emailTaken": "An account with this email already exists. Please sign in.",
+  "weakPassword": "That password is too easy to guess. Please choose a stronger one.",
+  "termsRequired": "Please agree to the Terms and the Privacy Policy to create an account.",
+  "badEmail": "Please enter a valid email address.",
+  "registrationClosed": "New accounts cannot be created in the app at the moment. Please try again later.",
+  "checkInboxTitle": "Check your inbox",
+  "resetSent": "If an account exists for {email}, a link to choose a new password is on its way.",
+  "@resetSent": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "resendIn": "Resend in {seconds} s",
+  "@resendIn": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "resendEmail": "Resend email",
+  "backToSignIn": "Back to sign in",
+  "socialUnavailable": "This way of signing in is not available yet. Please continue with your email.",
+  "socialFailed": "That sign-in did not finish. Please try again or continue with your email.",
+  "saveDetailsTitle": "Save your details for next time",
+  "saveDetailsBody": "Sign in or create an account to check out faster next time.",
+  "deleteAccount": "Delete account",
+  "deleteAccountTitle": "Delete your account",
+  "deleteAccountBody": "Your YAZAN account and the details saved in it will be deleted. This cannot be undone. Enter your password to confirm.",
+  "deleteAccountConfirm": "Delete",
+  "cancel": "Cancel",
+  "deletePasswordWrong": "The password is not right.",
+  "accountDeleted": "Your account has been deleted.",
+  "deleteOnWebsite": "Request deletion on the website",
+  "badName": "Please enter your name in plain letters.",
+  "deleteNoPasswordHint": "Signed up with Google or Apple and have no password? Leave this empty within 5 minutes of signing in.",
+  "deleteReauthRequired": "Enter your password to confirm. If you signed up with Google or Apple, sign in again and delete within 5 minutes.",
+  "deleteNotAllowed": "This account cannot be deleted in the app. Please contact us."
 }

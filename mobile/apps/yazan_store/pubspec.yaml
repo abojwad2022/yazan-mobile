@@ -21,6 +21,12 @@ dependencies:
   # 5.x is the stable line (Dart >=3.5, Flutter >=3.24); 6.x (still alpha) is the one for AGP 9 /
   # built-in Kotlin. Its Android CallbackActivity is added by mobile/tools/scaffold_platforms.sh.
   flutter_web_auth_2: ^5.1.0
+  # Native "Continue with Google" (lib/src/auth/social_sign_in.dart): Android Credential Manager.
+  # Written against the 7.x API (GoogleSignIn.instance.initialize / authenticate); only used when the
+  # build has --dart-define=YAZAN_GOOGLE_SERVER_CLIENT_ID=... . 7.1.x needs Dart 3.6, 7.2 Dart 3.7.
+  google_sign_in: ^7.1.1
+  # Opens the Terms, Privacy Policy and account-deletion pages in the phone's browser.
+  url_launcher: ^6.3.1
   yazan_domain:
   yazan_api_client:
   yazan_design_system:

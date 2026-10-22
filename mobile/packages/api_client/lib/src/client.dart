@@ -8,6 +8,26 @@ import 'package:yazan_domain/yazan_domain.dart';
 import 'token_store.dart';
 import 'traffic.dart';
 
+/// The answer of `POST /auth/lookup`: whether an account uses this email, and how it can sign in
+/// (`password`, `google`, `apple`, ...). The app uses it to choose the next step only.
+class AccountLookup {
+  const AccountLookup({required this.exists, this.methods = const []});
+
+  factory AccountLookup.fromJson(Map<String, dynamic> j) {
+    final methods = j['methods'];
+    return AccountLookup(
+      exists: j['exists'] == true,
+      methods: methods is List ? [for (final m in methods) if (m is String) m] : const [],
+    );
+  }
+
+  final bool exists;
+  final List<String> methods;
+
+  /// True when the account can sign in with a password (or the server did not say how).
+  bool get hasPassword => methods.isEmpty || methods.contains('password');
+}
+
 /// Result of a sign-in step: either a session or a second-step challenge.
 class LoginResult {
   const LoginResult.session(Session this.session) : challenge = null;
@@ -187,6 +207,90 @@ class YazanApiClient {
       auth: false,
     );
     return _loginResult(body);
+  }
+
+  /// Whether an account uses [email] (`POST /auth/lookup`), sent without a bearer. Decides whether
+  /// the sign-in screen asks for the password or offers to create an account.
+  Future<AccountLookup> lookup(String email) async {
+    final body = await _send<Map<String, dynamic>>(
+      'POST',
+      '$_ns/auth/lookup',
+      data: {'email': email},
+      auth: false,
+    );
+    return AccountLookup.fromJson(body);
+  }
+
+  /// Creates a customer account and signs it in (`POST /auth/register`). The answer is the same
+  /// session pair and `user` payload as [login] (store scope), stored the same way.
+  ///
+  /// * `accept_terms` is always true: the screen states that continuing means agreeing.
+  /// * [marketingOptIn] is false unless the customer ticked the box.
+  /// * [platform] is sent only when it is `android` or `ios`.
+  /// * Store-only: an admin-scope client is refused here without a network call.
+  /// * Refusals: 409 `yazan_mobile_email_taken`, 400 `yazan_mobile_weak_password` /
+  ///   `yazan_mobile_terms_required` / `yazan_mobile_bad_email`, 403
+  ///   `yazan_mobile_registration_closed`, 429 `yazan_mobile_slow_down`.
+  Future<LoginResult> register({
+    required String firstName,
+    required String lastName,
+    required String email,
+    required String password,
+    bool marketingOptIn = false,
+    String? deviceName,
+    String? platform,
+  }) async {
+    if (scope != AppScope.store) {
+      throw const ApiError(status: 403, code: 'yazan_mobile_wrong_app');
+    }
+    final body = await _send<Map<String, dynamic>>(
+      'POST',
+      '$_ns/auth/register',
+      data: {
+        'first_name': firstName,
+        'last_name': lastName,
+        'email': email,
+        'password': password,
+        'accept_terms': true,
+        'marketing_opt_in': marketingOptIn,
+        'device_id': deviceId,
+        if (_knownPlatform(platform)) 'platform': platform,
+        if (deviceName != null) 'device_name': deviceName,
+      },
+      auth: false,
+    );
+    return _loginResult(body);
+  }
+
+  /// Asks the site to email a password-reset link (`POST /auth/password/forgot`), sent without a
+  /// bearer. The server answers the same way whether or not the email has an account.
+  Future<void> forgotPassword(String email) async {
+    await _send<Map<String, dynamic>>(
+      'POST',
+      '$_ns/auth/password/forgot',
+      data: {'email': email},
+      auth: false,
+    );
+  }
+
+  /// The account-deletion route ([deleteAccount]); the server also answers it as `/me/delete`.
+  static const deleteAccountPath = '$_ns/account/delete';
+
+  /// Deletes the signed-in customer's account for good (`POST /account/delete`), then ends the
+  /// session on this phone exactly like [clearSession]. Any error throws and leaves the session as
+  /// it was.
+  ///
+  /// * [password] is sent when not empty. Without one the server accepts only an account with a
+  ///   linked Google / Apple identity signed in within the last 5 minutes (else 403
+  ///   `yazan_mobile_reauth_required`).
+  /// * Refusals: 403 `yazan_mobile_bad_password`, 403 `yazan_mobile_cannot_delete` (staff), 429.
+  Future<void> deleteAccount({String? password}) async {
+    await _send<Map<String, dynamic>>(
+      'POST',
+      deleteAccountPath,
+      data: {if (password != null && password.isNotEmpty) 'password': password},
+    );
+    await clearSession();
   }
 
   Future<Session> verifySecondStep({required String challenge, required String code}) async {

@@ -122,6 +122,20 @@ class FakeAccountApi implements AccountApi {
     _maybeFail();
     return OrderDetail.fromJson(orderDetailJson(id));
   }
+
+  /// Thrown by [deleteAccount] instead of deleting (a wrong password, no connection).
+  Object? deleteError;
+
+  /// The passwords [deleteAccount] was called with.
+  final List<String> deletions = [];
+
+  @override
+  Future<void> deleteAccount({required String password}) async {
+    calls.add('delete');
+    deletions.add(password);
+    final error = deleteError;
+    if (error != null) throw error;
+  }
 }
 
 /// In-memory [WishlistApi] holding "the server's" list. Set [failure] to make every call throw it;

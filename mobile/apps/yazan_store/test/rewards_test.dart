@@ -233,7 +233,7 @@ void main() {
       final client = ScriptedClient(MemoryTokenStore());
       return SessionScope(
         signedIn: signedIn,
-        openSignIn: (context) async {
+        openSignIn: (context, {email}) async {
           log.add('sign-in opened');
           return false;
         },

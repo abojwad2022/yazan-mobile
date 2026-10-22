@@ -6,12 +6,14 @@ import 'package:yazan_domain/yazan_domain.dart';
 
 import '../l10n/app_localizations.dart';
 import 'account/account_api.dart';
+import 'auth/social_sign_in.dart';
 import 'cart/cart_controller.dart';
 import 'cart/cart_scope.dart';
 import 'cart/store_api.dart';
 import 'catalogue/catalogue_repository.dart';
 import 'catalogue/category_repository.dart';
 import 'home_page.dart';
+import 'links.dart';
 import 'login_page.dart';
 import 'session_scope.dart';
 import 'storage/local_data.dart';
@@ -37,6 +39,9 @@ class YazanApp extends StatefulWidget {
     this.wishlistMirror,
     this.localData,
     this.webSignIn,
+    this.googleSignIn,
+    this.appleSignIn,
+    this.openLink = openInBrowser,
   });
 
   final YazanApiClient client;
@@ -70,6 +75,17 @@ class YazanApp extends StatefulWidget {
   /// the system auth browser on the site [client] talks to.
   final WebSignIn? webSignIn;
 
+  /// "Continue with Google". Tests inject a fake; null = the plugin, when this build has the Google
+  /// client id ([defaultGoogleSource]), else no button.
+  final SocialTokenSource? googleSignIn;
+
+  /// "Continue with Apple" (iOS). Only shown when one is given: the app does not ship the Apple
+  /// provider yet (docs/mobile/08-KNOWN-LIMITS-AND-RISKS.md).
+  final SocialTokenSource? appleSignIn;
+
+  /// Opens the Terms, the Privacy Policy and the account-deletion page (tests pass a recorder).
+  final LinkOpener openLink;
+
   @override
   State<YazanApp> createState() => _YazanAppState();
 }
@@ -83,6 +99,9 @@ class _YazanAppState extends State<YazanApp> {
   late final AccountApi _account = widget.accountApi ?? ClientAccountApi(widget.client);
   late final CatalogueRepository? _repository = _buildRepository();
   late final CategoryRepository? _categories = _buildCategories();
+  late final SocialTokenSource? _apple = widget.appleSignIn;
+  late final SocialTokenSource? _google =
+      widget.googleSignIn ?? defaultGoogleSource(appleShown: _apple != null);
   late final WishlistController _wishlist = WishlistController(
     api: widget.wishlistApi ?? ClientWishlistApi(widget.client),
     mirror: widget.wishlistMirror ?? MemoryWishlistMirror(),
@@ -173,14 +192,43 @@ class _YazanAppState extends State<YazanApp> {
     _forgetAccountData();
   }
 
-  /// Pushes the sign-in screen; resolves true once the customer has signed in.
-  Future<bool> _openSignIn(BuildContext context) async {
+  /// The customer deleted the account: the same as a sign-out on the phone (cart, favourites and
+  /// local data forgotten), with the session cleared through the client in case the account routes
+  /// did not do it already.
+  void _accountDeletedNow() {
+    _signedOutNow();
+    _clearSessionQuietly();
+    _forgetProviders();
+  }
+
+  Future<void> _clearSessionQuietly() async {
+    try {
+      await widget.client.clearSession();
+    } catch (_) {
+      // Retried as a wipe on the next start without a session.
+    }
+  }
+
+  /// Google / Apple forget the account on this phone, so the next customer picks their own.
+  void _forgetProviders() {
+    _google?.signOut();
+    _apple?.signOut();
+  }
+
+  /// Pushes the sign-in screen (one step per screen, opened like a sheet); resolves true once the
+  /// customer has signed in. [email] prefills the address.
+  Future<bool> _openSignIn(BuildContext context, {String? email}) async {
     final navigator = Navigator.of(context);
     final signedIn = await navigator.push<bool>(
       MaterialPageRoute<bool>(
+        fullscreenDialog: true,
         builder: (routeContext) => LoginPage(
           client: widget.client,
           webSignIn: widget.webSignIn,
+          google: _google,
+          apple: _apple,
+          openLink: widget.openLink,
+          initialEmail: email ?? '',
           onSignedIn: () {
             _signedInNow();
             Navigator.of(routeContext).pop(true);
@@ -200,6 +248,7 @@ class _YazanAppState extends State<YazanApp> {
       // Through the client, so a refresh still in flight cannot write the session back.
       await widget.client.clearSession();
     }
+    _forgetProviders();
     _signedOutNow();
   }
 
@@ -233,6 +282,8 @@ class _YazanAppState extends State<YazanApp> {
               categories: _categories,
               onSignOut: _signOut,
               onSessionEnded: _signedOutNow,
+              onAccountDeleted: _accountDeletedNow,
+              openLink: widget.openLink,
             ),
           ),
         ),

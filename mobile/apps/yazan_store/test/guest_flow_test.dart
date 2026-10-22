@@ -7,6 +7,7 @@ import 'package:yazan_store/src/cart/store_api.dart';
 import 'fixtures/account_fakes.dart';
 import 'fixtures/catalogue_fixtures.dart';
 import 'fixtures/scripted_client.dart';
+import 'fixtures/sign_in_steps.dart';
 import 'fixtures/store_cart.dart';
 
 /// Serves the fixture cart (and the checkout success) and always hands out the same Cart-Token.
@@ -70,16 +71,9 @@ Future<void> _tapAddToCart(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-/// Signs in through the form that is on screen (the customer chose to).
-Future<void> _fillSignIn(WidgetTester tester) async {
-  // The website sign-in leads; the in-app email form opens under it.
-  await tester.tap(find.text('Sign in with email here'));
-  await tester.pumpAndSettle();
-  await tester.enterText(find.byType(TextField).at(0), 'noor@yazan.test');
-  await tester.enterText(find.byType(TextField).at(1), 'secret-password');
-  await tester.tap(find.widgetWithText(FilledButton, 'Sign in'));
-  await tester.pumpAndSettle();
-}
+/// Signs in through the sign-in screen that is open (the customer chose to): email, Continue,
+/// password, Sign in.
+Future<void> _fillSignIn(WidgetTester tester) => signInWithEmail(tester);
 
 void main() {
   group('a guest with no account', () {
@@ -118,6 +112,14 @@ void main() {
       expect(app.client.logins, isEmpty);
       expect(app.wishlist.calls, isEmpty);
       expect(app.account.calls, isEmpty);
+
+      // Only now, and only as an offer: save the details for next time, with the order's email.
+      await tester.tap(find.text('Save your details for next time'));
+      await tester.pumpAndSettle();
+      expect(find.text('Welcome to YAZAN'), findsOneWidget);
+      expect(tester.widget<TextField>(find.byKey(const ValueKey('auth-email'))).controller!.text,
+          'customer@yazan.test');
+      expect(app.client.lookups, isEmpty);
     });
 
     testWidgets('tapping Favourites asks to sign in and "Not now" leaves everything as it was',

@@ -659,4 +659,189 @@ void main() {
       expect(sent['platform'], 'ios');
     });
   });
+
+  group('lookup', () {
+    test('posts the email without a bearer and reads exists and methods', () async {
+      final store = MemoryTokenStore();
+      await store.write(Session.fromJson(pair('yzm_old', 'yzr_old')));
+      final a = FakeAdapter((o) => (
+            200,
+            {
+              'exists': true,
+              'methods': ['password', 'google', 7],
+            },
+            {},
+          ));
+      final r = await make(a, store).lookup('noor@yazan.test');
+      expect(r.exists, isTrue);
+      expect(r.methods, ['password', 'google']);
+      expect(r.hasPassword, isTrue);
+      final o = a.seen.single;
+      expect(o.method, 'POST');
+      expect(o.path, endsWith('/yazan-mobile/v1/auth/lookup'));
+      expect(o.headers.containsKey('Authorization'), isFalse);
+      expect(jsonDecode(o.data as String), {'email': 'noor@yazan.test'});
+    });
+
+    test('a new email is exists false; an account with only Google has no password', () async {
+      final store = MemoryTokenStore();
+      final a = FakeAdapter((o) => (200, {'exists': false}, {}));
+      final r = await make(a, store).lookup('new@yazan.test');
+      expect(r.exists, isFalse);
+      expect(r.methods, isEmpty);
+      expect(const AccountLookup(exists: true, methods: ['google']).hasPassword, isFalse);
+    });
+
+    test('a slow-down answer is an ApiError with the back-off action', () async {
+      final store = MemoryTokenStore();
+      final a = FakeAdapter((o) => (429, {'code': 'yazan_mobile_slow_down'}, {}));
+      await expectLater(
+          make(a, store).lookup('x@yazan.test'),
+          throwsA(isA<ApiError>()
+              .having((e) => e.status, 'status', 429)
+              .having((e) => e.action, 'action', ErrorAction.backOff)));
+    });
+  });
+
+  group('register', () {
+    test('posts the new account with accept_terms and stores the session like login', () async {
+      final store = MemoryTokenStore();
+      final a = FakeAdapter((o) => (
+            201,
+            {
+              ...pair('yzm_n', 'yzr_n'),
+              'user': {'id': 9, 'name': 'Noor Ali', 'email': 'noor@yazan.test', 'scope': 'store'},
+            },
+            {},
+          ));
+      final r = await make(a, store).register(
+        firstName: 'Noor',
+        lastName: 'Ali',
+        email: 'noor@yazan.test',
+        password: 'long-enough-1',
+        platform: 'android',
+      );
+      expect(r.session!.accessToken, 'yzm_n');
+      expect(r.userId, 9);
+      expect((await store.read())!.refreshToken, 'yzr_n');
+      final o = a.seen.single;
+      expect(o.path, endsWith('/yazan-mobile/v1/auth/register'));
+      expect(o.headers.containsKey('Authorization'), isFalse);
+      expect(jsonDecode(o.data as String), {
+        'first_name': 'Noor',
+        'last_name': 'Ali',
+        'email': 'noor@yazan.test',
+        'password': 'long-enough-1',
+        'accept_terms': true,
+        'marketing_opt_in': false,
+        'device_id': 'dev-1',
+        'platform': 'android',
+      });
+    });
+
+    test('sends the opt-in when ticked and leaves out an unknown platform', () async {
+      final store = MemoryTokenStore();
+      final a = FakeAdapter((o) => (200, pair('yzm_n', 'yzr_n'), {}));
+      await make(a, store).register(
+        firstName: 'A',
+        lastName: 'B',
+        email: 'a@b.test',
+        password: 'long-enough-1',
+        marketingOptIn: true,
+        platform: 'linux',
+        deviceName: 'Pixel',
+      );
+      final sent = jsonDecode(a.seen.single.data as String) as Map;
+      expect(sent['marketing_opt_in'], isTrue);
+      expect(sent.containsKey('platform'), isFalse);
+      expect(sent['device_name'], 'Pixel');
+    });
+
+    test('a taken email is a 409 and stores nothing', () async {
+      final store = MemoryTokenStore();
+      final a = FakeAdapter((o) => (409, {'code': 'yazan_mobile_email_taken'}, {}));
+      await expectLater(
+          make(a, store).register(firstName: 'A', lastName: 'B', email: 'a@b.test', password: 'p'),
+          throwsA(isA<ApiError>()
+              .having((e) => e.status, 'status', 409)
+              .having((e) => e.code, 'code', 'yazan_mobile_email_taken')));
+      expect(await store.read(), isNull);
+    });
+
+    test('an admin-scope client is refused without a network call', () async {
+      final store = MemoryTokenStore();
+      final a = FakeAdapter((o) => (200, pair('yzm_n', 'yzr_n'), {}));
+      final c = YazanApiClient(
+        baseUrl: 'https://example.test',
+        scope: AppScope.admin,
+        deviceId: 'dev-1',
+        tokens: store,
+        dio: Dio()..httpClientAdapter = a,
+      );
+      await expectLater(
+          c.register(firstName: 'A', lastName: 'B', email: 'a@b.test', password: 'p'),
+          throwsA(isA<ApiError>().having((e) => e.code, 'code', 'yazan_mobile_wrong_app')));
+      expect(a.seen, isEmpty);
+    });
+  });
+
+  group('forgotPassword', () {
+    test('posts the email without a bearer', () async {
+      final store = MemoryTokenStore();
+      final a = FakeAdapter((o) => (200, {'ok': true}, {}));
+      await make(a, store).forgotPassword('noor@yazan.test');
+      final o = a.seen.single;
+      expect(o.method, 'POST');
+      expect(o.path, endsWith('/yazan-mobile/v1/auth/password/forgot'));
+      expect(o.headers.containsKey('Authorization'), isFalse);
+      expect(jsonDecode(o.data as String), {'email': 'noor@yazan.test'});
+    });
+
+    test('a rate limit is thrown', () async {
+      final store = MemoryTokenStore();
+      final a = FakeAdapter((o) => (429, {'code': 'yazan_mobile_slow_down'}, {}));
+      await expectLater(make(a, store).forgotPassword('x@y.test'), throwsA(isA<ApiError>()));
+    });
+  });
+
+  group('deleteAccount', () {
+    test('posts the password with the bearer, then clears the session', () async {
+      final store = MemoryTokenStore();
+      await store.write(Session.fromJson(pair('yzm_a', 'yzr_a')));
+      final a = FakeAdapter((o) => (200, {'deleted': true}, {}));
+      await make(a, store).deleteAccount(password: 'secret-password');
+      final o = a.seen.single;
+      expect(o.method, 'POST');
+      expect(o.path, endsWith(YazanApiClient.deleteAccountPath));
+      expect(o.path, endsWith('/yazan-mobile/v1/account/delete'));
+      expect(o.headers['Authorization'], 'Bearer yzm_a');
+      expect(jsonDecode(o.data as String), {'password': 'secret-password'});
+      expect(await store.read(), isNull);
+    });
+
+    test('a refused password throws and keeps the session', () async {
+      final store = MemoryTokenStore();
+      await store.write(Session.fromJson(pair('yzm_a', 'yzr_a')));
+      final a = FakeAdapter((o) => (403, {'code': 'yazan_mobile_bad_password'}, {}));
+      await expectLater(make(a, store).deleteAccount(password: 'wrong'),
+          throwsA(isA<ApiError>().having((e) => e.status, 'status', 403)));
+      expect((await store.read())!.accessToken, 'yzm_a');
+    });
+
+    test('no password (a Google / Apple account just signed in) sends an empty body', () async {
+      final store = MemoryTokenStore();
+      await store.write(Session.fromJson(pair('yzm_a', 'yzr_a')));
+      final a = FakeAdapter((o) => (200, {'deleted': true}, {}));
+      await make(a, store).deleteAccount(password: '');
+      expect(jsonDecode(a.seen.single.data as String), <String, dynamic>{});
+      expect(await store.read(), isNull);
+    });
+
+    test('without a session nothing is sent', () async {
+      final store = MemoryTokenStore();
+      final a = FakeAdapter((o) => (200, {'deleted': true}, {}));
+      await expectLater(make(a, store).deleteAccount(password: 'p'), throwsA(isA<ApiError>()));
+      expect(a.seen, isEmpty);
+    });
+  });
 }

@@ -57,7 +57,7 @@ void main() {
     expect(dir, TextDirection.rtl);
   });
 
-  testWidgets('the account entry opens the sign-in form, which says signing in is optional',
+  testWidgets('the account entry opens "Welcome to YAZAN", which says signing in is optional',
       (tester) async {
     final tokens = MemoryTokenStore();
     await tester.pumpWidget(YazanApp(
@@ -72,20 +72,20 @@ void main() {
 
     await tester.tap(find.byTooltip('Account'));
     await tester.pumpAndSettle();
-    // The website's own sign-in page leads; the in-app email form is folded under it.
-    expect(find.widgetWithText(FilledButton, 'Sign in or create account'), findsOneWidget);
+    // One email field leads; no password until the email is known.
+    expect(find.text('Welcome to YAZAN'), findsOneWidget);
+    expect(find.byKey(const ValueKey('auth-email')), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, 'Continue'), findsOneWidget);
     expect(find.text('Password'), findsNothing);
     expect(find.text('Signing in is optional. You can browse and order without an account.'),
         findsOneWidget);
-    await tester.tap(find.text('Sign in with email here'));
-    await tester.pumpAndSettle();
-    expect(find.widgetWithText(FilledButton, 'Sign in'), findsOneWidget);
-    expect(find.text('Password'), findsOneWidget);
+    // The website stays as a small link at the bottom.
+    expect(find.widgetWithText(TextButton, 'Other ways to sign in'), findsOneWidget);
 
-    // Back returns to the shop; nothing was required.
-    await tester.pageBack();
+    // Close returns to the shop; nothing was required.
+    await tester.tap(find.byTooltip('Close'));
     await tester.pumpAndSettle();
-    expect(find.text('Password'), findsNothing);
+    expect(find.text('Welcome to YAZAN'), findsNothing);
     expect(find.byTooltip('Account'), findsOneWidget);
   });
 

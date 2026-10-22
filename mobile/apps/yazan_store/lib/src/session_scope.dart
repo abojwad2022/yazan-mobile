@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 
 /// Opens the sign-in screen on the navigator of [context]; true when the customer signed in.
-typedef SignInOpener = Future<bool> Function(BuildContext context);
+/// [email] prefills the address (for example the one a guest just ordered with).
+typedef SignInOpener = Future<bool> Function(BuildContext context, {String? email});
 
 /// Tells every screen whether a customer is signed in. The app works without an account; only
 /// favourites and "my orders" need one, and they use [requireSignIn] to ask politely.

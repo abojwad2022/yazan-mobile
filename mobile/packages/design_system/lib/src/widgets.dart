@@ -19,3 +19,34 @@ class StaleBadge extends StatelessWidget {
     );
   }
 }
+
+/// The one heading of a screen, in the brand's serif display face (the website pairs a serif
+/// display with a clean sans). Uses the phone's own serif (Noto Serif on Android, Georgia / New
+/// York on iOS) so no font has to ship with the app; Arabic falls back to the system Naskh.
+class YazanHeading extends StatelessWidget {
+  const YazanHeading(this.text, {super.key, this.textAlign});
+
+  final String text;
+  final TextAlign? textAlign;
+
+  /// The serif families tried in order.
+  static const fontFamily = 'serif';
+  static const fontFamilyFallback = <String>['Noto Serif', 'Georgia', 'Times New Roman', 'Noto Naskh Arabic'];
+
+  /// The heading style on top of [theme]'s `headlineSmall`.
+  static TextStyle style(ThemeData theme) => (theme.textTheme.headlineSmall ?? const TextStyle()).copyWith(
+        fontFamily: fontFamily,
+        fontFamilyFallback: fontFamilyFallback,
+        fontWeight: FontWeight.w400,
+        letterSpacing: 0.3,
+        height: 1.25,
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      header: true,
+      child: Text(text, textAlign: textAlign, style: style(Theme.of(context))),
+    );
+  }
+}

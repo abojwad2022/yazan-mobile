@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../links.dart';
 import '../wishlist/wishlist_page.dart';
 import '../wishlist/wishlist_scope.dart';
 import 'account_api.dart';
 import 'account_models.dart';
 import 'account_widgets.dart';
+import 'delete_account_dialog.dart';
 import 'failure.dart';
 import 'orders_page.dart';
 
-/// A minimal account: who is signed in, my orders, favourites and sign-out.
+/// A minimal account: who is signed in, my orders, favourites, sign-out and deleting the account.
 class AccountPage extends StatefulWidget {
   const AccountPage({
     super.key,
@@ -17,6 +19,9 @@ class AccountPage extends StatefulWidget {
     required this.findProduct,
     required this.onSignOut,
     required this.onSessionEnded,
+    this.onAccountDeleted,
+    this.websiteUrl,
+    this.openLink = openInBrowser,
   });
 
   final AccountApi api;
@@ -29,6 +34,16 @@ class AccountPage extends StatefulWidget {
 
   /// The server says the session is over: show the sign-in form.
   final VoidCallback onSessionEnded;
+
+  /// The account was deleted: forget everything of the customer on the phone and carry on as a
+  /// guest. Null = [onSessionEnded].
+  final VoidCallback? onAccountDeleted;
+
+  /// The website, for "Request deletion on the website"; null hides that link.
+  final String? websiteUrl;
+
+  /// Opens the website's account-deletion page.
+  final LinkOpener openLink;
 
   @override
   State<AccountPage> createState() => _AccountPageState();
@@ -70,6 +85,29 @@ class _AccountPageState extends State<AccountPage> {
       _failure = null;
     });
     _load();
+  }
+
+  /// "Delete account": the dialog asks for the password and makes the call; once the account is
+  /// gone every pushed screen closes, the phone's copy of the customer is wiped and the shop goes on
+  /// as a guest.
+  Future<void> _deleteAccount() async {
+    final site = widget.websiteUrl;
+    final deleted = await showDialog<bool>(
+      context: context,
+      builder: (_) => DeleteAccountDialog(
+        api: widget.api,
+        onWebsite: site == null ? null : () => widget.openLink(SiteLinks.accountDeletion(site)),
+      ),
+    );
+    if (deleted != true || !mounted) return;
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final message = AppLocalizations.of(context).accountDeleted;
+    navigator.popUntil((route) => route.isFirst);
+    (widget.onAccountDeleted ?? widget.onSessionEnded)();
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _signOut() async {
@@ -157,6 +195,15 @@ class _AccountPageState extends State<AccountPage> {
             child: OutlinedButton(
               onPressed: _signingOut ? null : _signOut,
               child: Text(l.signOut),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsetsDirectional.fromSTEB(16, 8, 16, 24),
+            child: TextButton(
+              key: const ValueKey('delete-account'),
+              style: TextButton.styleFrom(foregroundColor: theme.colorScheme.error),
+              onPressed: _signingOut ? null : _deleteAccount,
+              child: Text(l.deleteAccount),
             ),
           ),
         ],

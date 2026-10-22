@@ -84,10 +84,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
       _error = null;
     });
     try {
-      final order = await widget.controller.placeOrder(_details());
+      final details = _details();
+      final order = await widget.controller.placeOrder(details);
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute<void>(builder: (_) => OrderPlacedPage(order: order)),
+        MaterialPageRoute<void>(
+          builder: (_) => OrderPlacedPage(order: order, email: details.email),
+        ),
       );
     } on StoreApiException catch (e) {
       if (!mounted) return;

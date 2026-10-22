@@ -125,26 +125,21 @@ void main() {
   });
 
   group('the sign-in screen', () {
-    testWidgets('leads with the website; the email form is folded under "Sign in with email here"',
+    testWidgets('the website is the small "Other ways to sign in" link under the email step',
         (tester) async {
       final tokens = MemoryTokenStore();
       final browser = FakeAuthBrowser(_closed);
       final client = ScriptedClient(tokens);
       await _openSignIn(tester, client: client, tokens: tokens, browser: browser);
 
-      expect(find.widgetWithText(FilledButton, 'Sign in or create account'), findsOneWidget);
+      expect(find.widgetWithText(TextButton, 'Other ways to sign in'), findsOneWidget);
+      // The native email step leads: one field, no password yet.
+      expect(_onSignIn(find.byType(TextField)), findsOneWidget);
       expect(find.text('Password'), findsNothing);
-      expect(_onSignIn(find.byType(TextField)), findsNothing);
-      // No native Google / Apple buttons any more: the website offers them.
+      // No Google / Apple buttons without a provider in this build.
       expect(find.text('Continue with Google'), findsNothing);
       expect(find.text('Continue with Apple'), findsNothing);
       expect(browser.opened, isEmpty);
-
-      await tester.tap(find.text('Sign in with email here'));
-      await _steps(tester);
-      expect(find.text('Password'), findsOneWidget);
-      expect(find.widgetWithText(FilledButton, 'Sign in'), findsOneWidget);
-      expect(find.text('Sign in with email here'), findsNothing);
     });
 
     testWidgets('opens the start page with a fresh state and an S256 challenge, then signs in',
@@ -202,7 +197,7 @@ void main() {
       expect(find.text('Sign-in did not finish. Please try again.'), findsOneWidget);
       expect(await tokens.read(), isNull);
       expect(find.byType(LoginPage), findsOneWidget);
-      final button = tester.widget<FilledButton>(find.byKey(const ValueKey('web-sign-in')));
+      final button = tester.widget<TextButton>(find.byKey(const ValueKey('web-sign-in')));
       expect(button.onPressed, isNotNull);
     });
 
@@ -313,9 +308,8 @@ void main() {
           browser: FakeAuthBrowser(_closed),
           accountTooltip: 'الحساب');
 
-      expect(find.text('تسجيل الدخول أو إنشاء حساب'), findsOneWidget);
-      expect(find.text('تسجيل الدخول بالبريد الإلكتروني هنا'), findsOneWidget);
-      final dir = Directionality.of(tester.element(find.text('تسجيل الدخول أو إنشاء حساب')));
+      expect(find.text('طرق أخرى لتسجيل الدخول'), findsOneWidget);
+      final dir = Directionality.of(tester.element(find.text('طرق أخرى لتسجيل الدخول')));
       expect(dir, TextDirection.rtl);
     });
   });

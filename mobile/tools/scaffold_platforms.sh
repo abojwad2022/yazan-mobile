@@ -100,6 +100,15 @@ if [ "$pkg" = "yazan_store" ]; then
       || { echo "scaffold: could not exclude arm64 simulator in $xc" >&2; exit 1; }
   done
 fi
+# Website links from the sign-in screen and the account page (url_launcher, Store app): the Terms, the Privacy Policy
+# and /account-deletion/ open in the browser. Android 11+ package visibility for https VIEW intents, as in the
+# url_launcher README (a second <queries> element is merged with the template's). Google sign-in (google_sign_in 7.x,
+# Credential Manager) needs no manifest entry. Idempotent; fails loudly.
+if [ "$pkg" = "yazan_store" ]; then
+  grep -q '<data android:scheme="https" />' "$m" || perl -0pi -e 's#(\n?[ \t]*</manifest>)#\n    <queries>\n        <intent>\n            <action android:name="android.intent.action.VIEW" />\n            <data android:scheme="https" />\n        </intent>\n    </queries>$1#' "$m"
+  grep -q '<data android:scheme="https" />' "$m" \
+    || { echo "scaffold: could not add the https <queries> entry to $m" >&2; exit 1; }
+fi
 export LABEL="$label"
 # What the home screen shows under the icon.
 perl -pi -e 's/android:label="[^"]*"/android:label="$ENV{LABEL}"/' android/app/src/main/AndroidManifest.xml

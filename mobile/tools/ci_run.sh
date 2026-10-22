@@ -4,7 +4,10 @@
 label="$1"; shift
 log="$(mktemp)"
 set +e
-timeout 15m "$@" 2>&1 | tee "$log"
+# A hung test fails the step after 15 minutes instead of holding the runner; macOS has no `timeout`.
+limit=()
+if command -v timeout >/dev/null 2>&1; then limit=(timeout 15m); fi
+"${limit[@]}" "$@" 2>&1 | tee "$log"
 code=${PIPESTATUS[0]}
 set -e
 if [ "$code" -ne 0 ]; then

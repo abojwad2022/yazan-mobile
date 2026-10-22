@@ -12,8 +12,13 @@ const Duration defaultLockTimeout = Duration(seconds: 60);
 ///   is hidden at once, so the task switcher shows the cover, not customers.
 /// * Locked: it was away for more than [timeout] (or the app was just started). Needs the gate.
 ///
-/// Never a lock-out: when the phone has nothing to check against the app does not lock and says so
-/// once; wrong or cancelled attempts keep it locked and offer another try, they never sign out.
+/// Never a lock-out: when the phone says it has nothing to check against the app does not lock and
+/// says so once; wrong or cancelled attempts keep it locked and offer another try, they never sign
+/// out.
+///
+/// Fails closed: when the capability check itself errors ([GateAvailability.error]) that is not
+/// read as "nothing enrolled". The app stays locked with the Unlock button and the "could not
+/// confirm" line, and [confirm] refuses the sensitive action, until a check succeeds.
 class AppLockController extends ChangeNotifier {
   AppLockController({
     required this.gate,
@@ -40,7 +45,8 @@ class AppLockController extends ChangeNotifier {
   /// The "Require unlock" switch (the stored choice; on by default when the phone can check).
   bool get enabled => _enabled;
 
-  /// The phone has something to check against.
+  /// The phone has something to check against (or the last check errored, which is treated as
+  /// "assume it has": only an explicit "nothing enrolled" answer clears it).
   bool get available => _available;
 
   /// The lock is actually in force.
@@ -59,8 +65,12 @@ class AppLockController extends ChangeNotifier {
 
   /// Reads the stored choice and the phone's capability. Call once before the first frame; the
   /// app starts locked when the lock is on.
+  ///
+  /// When the capability check errors the lock stays on (default on, or as stored) and the app
+  /// starts locked; the first prompt re-checks and, if it still errors, shows "could not confirm".
   Future<void> init() async {
-    _available = await _can();
+    final can = await _can();
+    _available = can != GateAvailability.unavailable;
     final stored = await settings.read();
     _enabled = stored ?? _available;
     if (!_available) {
@@ -71,11 +81,12 @@ class AppLockController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> _can() async {
+  /// The gate's answer; a throw is an error, never "nothing enrolled".
+  Future<GateAvailability> _can() async {
     try {
       return await gate.canCheck();
     } catch (_) {
-      return false;
+      return GateAvailability.error;
     }
   }
 
@@ -134,14 +145,23 @@ class AppLockController extends ChangeNotifier {
   Future<bool> unlock(String reason) async {
     if (!_locked) return true;
     if (_authenticating) return false;
-    if (!await _can()) {
-      // The credential was removed meanwhile: never lock the person out.
-      _available = false;
-      _locked = false;
-      _hidden = false;
-      _notice = true;
-      notifyListeners();
-      return true;
+    switch (await _can()) {
+      case GateAvailability.unavailable:
+        // The phone says the credential was removed meanwhile: never lock the person out.
+        _available = false;
+        _locked = false;
+        _hidden = false;
+        _notice = true;
+        notifyListeners();
+        return true;
+      case GateAvailability.error:
+        // Unknown is not "none": stay locked, show "could not confirm" and the Unlock button.
+        _lastFailed = true;
+        _failures++;
+        notifyListeners();
+        return false;
+      case GateAvailability.available:
+        _available = true;
     }
     final ok = await _ask(reason);
     if (ok) {
@@ -158,11 +178,19 @@ class AppLockController extends ChangeNotifier {
   }
 
   /// A one-off check for a sensitive action (refund, price change). True = go ahead. Passes without
-  /// asking when the lock is off or the phone cannot check, like the lock itself.
+  /// asking when the lock is off or the phone says it has nothing to check against, like the lock
+  /// itself. A capability check that errors refuses the action (fail closed).
   Future<bool> confirm(String reason) async {
     if (!shouldGuard) return true;
     if (_authenticating) return false;
-    if (!await _can()) return true;
+    switch (await _can()) {
+      case GateAvailability.unavailable:
+        return true;
+      case GateAvailability.error:
+        return false;
+      case GateAvailability.available:
+        break;
+    }
     final ok = await _ask(reason);
     notifyListeners();
     return ok;
@@ -173,8 +201,10 @@ class AppLockController extends ChangeNotifier {
   Future<bool> setEnabled(bool value, {required String reason}) async {
     if (value == _enabled) return true;
     if (value) {
-      if (!await _can()) {
-        _available = false;
+      final can = await _can();
+      if (can != GateAvailability.available) {
+        // Only an explicit "nothing enrolled" marks the phone unable; an error just refuses.
+        if (can == GateAvailability.unavailable) _available = false;
         notifyListeners();
         return false;
       }

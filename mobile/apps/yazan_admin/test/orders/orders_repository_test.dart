@@ -92,6 +92,37 @@ void main() {
       expect(repo.orders, isEmpty);
     });
 
+    test('a 403 with any other code also sets noAccess, and purge drops the cache', () async {
+      var deny = false;
+      final store = MemoryFeedStore();
+      final repo = OrdersRepository(
+        store: store,
+        fetch: (_) async {
+          if (deny) throw const ApiError(status: 403, code: 'yazan_suspended');
+          return _page([_order(1, '2026-09-01T09:00:00+00:00')]);
+        },
+      );
+      await repo.refresh();
+      expect(repo.orders.length, 1);
+      expect(repo.noAccess, isFalse);
+
+      deny = true;
+      await repo.refresh();
+      expect(repo.noAccess, isTrue);
+      await repo.purge();
+      expect(repo.orders, isEmpty);
+      expect(await store.readAll(), isEmpty);
+    });
+
+    test('a non-403 server error is not noAccess', () async {
+      final repo = OrdersRepository(
+        fetch: (_) async => throw const ApiError(status: 500, code: 'internal_server_error'),
+      );
+      await repo.refresh();
+      expect(repo.lastRefreshFailed, isTrue);
+      expect(repo.noAccess, isFalse);
+    });
+
     test('shows the cache after a restart before any network call', () async {
       final store = MemoryFeedStore()
         ..cursor = 'c9'

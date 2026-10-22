@@ -6,6 +6,16 @@ import 'app_lock_controller.dart';
 /// Wraps the whole app (use it in `MaterialApp.builder`): feeds the controller the lifecycle,
 /// covers the content while the app is away or locked and raises the system prompt.
 /// [active] is false while nobody is signed in (nothing to protect on the sign-in screen).
+///
+/// Screen protection per platform:
+/// * Android: the Admin `MainActivity` sets `FLAG_SECURE` (patched in by
+///   `mobile/tools/scaffold_platforms.sh`), so the OS blanks the task-switcher thumbnail and blocks
+///   screenshots and screen recording for the whole app, independent of this widget.
+/// * iOS: there is no Flutter-level secure-window API, so the cover drawn on `inactive` here is
+///   best-effort only. It relies on Flutter painting a frame before iOS takes the app-switcher
+///   snapshot, and it does not stop screenshots or screen recording. Closing that gap needs native
+///   code (a secure `UITextField` layer trick or a snapshot overlay in the AppDelegate), which this
+///   app deliberately does not ship.
 class AppLockScope extends StatefulWidget {
   const AppLockScope({
     super.key,
@@ -196,7 +206,8 @@ class _NoticeBanner extends StatelessWidget {
 
 /// Asks the person to prove who they are before a sensitive action (refund, price change).
 /// True = go ahead. Passes when the app runs without a lock, the owner turned "Require unlock"
-/// off, or the phone has nothing to check against.
+/// off, or the phone says it has nothing to check against. False when the check fails or the
+/// phone's capability check errors (fail closed).
 Future<bool> confirmSensitive(BuildContext context, String reason) async {
   final c = AppLockScope.maybeOf(context);
   if (c == null) return true;

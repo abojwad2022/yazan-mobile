@@ -15,7 +15,9 @@ import 'staff_member.dart';
 /// [FeedStore] (feed `staff`, wiped with the account on sign-out) together with the time it was
 /// taken (a [FeedMeta] slot, [fetchedAt], shown as "as of"). A failed refresh keeps what is cached
 /// and sets [lastRefreshFailed]. A 403, or a permission map without `users.view`, sets [noAccess]
-/// and drops the cached rows. Read-only: nothing here writes to the server.
+/// and drops the cached rows, from the store too even when none were read into memory. A row whose
+/// `id` is not an int is skipped, so one odd record neither fails the list nor wedges [refresh].
+/// Read-only: nothing here writes to the server.
 class StaffRepository extends ChangeNotifier {
   StaffRepository({
     required StaffFetch fetch,
@@ -118,7 +120,7 @@ class StaffRepository extends ChangeNotifier {
     try {
       _rows = await _store.readAll();
       _fetchedAt = DateTime.tryParse(await _store.readMeta(_metaKey) ?? '');
-    } on Exception {
+    } catch (_) {
       // An unreadable cache shows as empty; the next refresh fills it.
     }
     _notify();
@@ -128,31 +130,35 @@ class StaffRepository extends ChangeNotifier {
     if (_loading) return;
     _loading = true;
     _notify();
-    await _ready;
-    await _refreshPermissions();
-    if (noAccess) {
-      if (_rows.isNotEmpty) await purge();
-    } else {
-      try {
-        final items = await _pullAll();
-        final now = _clock();
-        await _save(items, now);
-        _rows = items;
-        _fetchedAt = now;
-        _failed = false;
-        _error = null;
-      } on ApiError catch (e) {
-        _failed = true;
-        _error = e;
-        if (_forbidden(e)) await purge();
-      } on Exception {
-        _failed = true;
-        _error = null;
+    try {
+      await _ready;
+      await _refreshPermissions();
+      if (noAccess) {
+        // The store is checked, not memory: rows the reload could not read must go too.
+        await purge();
+      } else {
+        try {
+          final items = await _pullAll();
+          final now = _clock();
+          await _save(items, now);
+          _rows = items;
+          _fetchedAt = now;
+          _failed = false;
+          _error = null;
+        } on ApiError catch (e) {
+          _failed = true;
+          _error = e;
+          if (_forbidden(e)) await purge();
+        } catch (_) {
+          _failed = true;
+          _error = null;
+        }
       }
+    } finally {
+      _loading = false;
+      _loaded = true;
+      _notify();
     }
-    _loading = false;
-    _loaded = true;
-    _notify();
   }
 
   Future<List<Map<String, dynamic>>> _pullAll() async {
@@ -163,7 +169,8 @@ class StaffRepository extends ChangeNotifier {
       final raw = body['items'];
       if (raw is! List) throw const FormatException('users: items is not a list');
       for (final r in raw) {
-        if (r is Map) items.add(Map<String, dynamic>.from(r));
+        // The store keys rows by an int id; anything else is skipped, not fatal.
+        if (r is Map && r['id'] is int) items.add(Map<String, dynamic>.from(r));
       }
       final pages = body['total_pages'];
       final total = pages is num ? pages.toInt() : 1;
@@ -177,7 +184,7 @@ class StaffRepository extends ChangeNotifier {
     try {
       await _store.apply(upserts: items, deletedIds: const [], cursor: '', initial: true);
       await _store.writeMeta(_metaKey, at?.toUtc().toIso8601String());
-    } on Exception {
+    } catch (_) {
       // A cache that cannot be written only means no offline copy next time.
     }
   }
@@ -187,7 +194,7 @@ class StaffRepository extends ChangeNotifier {
     if (loader == null) return;
     try {
       _permissions = StaffPermissions.fromMe(await loader());
-    } on Exception {
+    } catch (_) {
       // Offline or refused: keep what was known.
     }
   }

@@ -25,13 +25,18 @@ class CatalogueRepository {
   /// The feed metadata key the time of the last successful refresh is stored under (UTC, ISO 8601).
   static const syncedAtKey = 'synced_at';
 
-  /// When the last refresh succeeded, or null if none has in this session.
+  /// When the last complete refresh finished, or null if none has in this session.
   DateTime? get lastSyncedAt => _lastSyncedAt;
 
   /// A first sync (no cursor yet) is staged and swapped in whole once the last page arrived, so an
   /// older install's rows stay on screen until the new catalogue is complete.
-  Future<void> refresh() async {
-    await pullFeed(fetch: _fetch, store: _store, replaceOnFirstSuccess: true);
+  ///
+  /// Returns true when the feed was read to its end. A pull cut off by the page limit returns false
+  /// and stamps nothing ([lastSyncedAt] and [syncedAtKey] keep the last complete refresh): a delta
+  /// pull resumes from its saved cursor next time, a staged first sync has applied nothing yet.
+  Future<bool> refresh() async {
+    final result = await pullFeedResult(fetch: _fetch, store: _store, replaceOnFirstSuccess: true);
+    if (!result.complete) return false;
     final now = _clock();
     _lastSyncedAt = now;
     try {
@@ -39,6 +44,7 @@ class CatalogueRepository {
     } on Exception {
       // The products are already saved; without the stamp only the stored sync time is missing.
     }
+    return true;
   }
 
   /// Cached products sorted by name, read straight from the store (works after a restart).

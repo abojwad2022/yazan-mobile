@@ -27,6 +27,8 @@ class LoginResult {
 ///
 /// * Adds the bearer; on 401 `yazan_mobile_bad_token` refreshes ONCE (single-flight) and retries.
 /// * A refresh that fails with `yazan_mobile_bad_refresh` clears the session and calls [onSignedOut].
+/// * A refresh still in flight when the session ends ([logout], [clearSession], or the stored session
+///   cleared or replaced) is discarded: it never writes the renewed pair back.
 /// * Writes can carry an `Idempotency-Key`; retries must reuse the same key ([newIdempotencyKey]).
 /// * GETs with an ETag are revalidated with `If-None-Match`; 304 returns the cached body.
 class YazanApiClient {
@@ -57,6 +59,10 @@ class YazanApiClient {
 
   final Map<String, _Cached> _etags = {};
   Future<Session>? _refreshing;
+
+  /// Bumped every time the session is ended on purpose ([clearSession], hence [logout]). A refresh
+  /// that started under an older generation does not write its result back.
+  int _generation = 0;
 
   static const _ns = '/yazan-mobile/v1';
 
@@ -156,8 +162,16 @@ class YazanApiClient {
     } on Exception {
       // The local session is ended either way.
     }
-    await tokens.clear();
+    await clearSession();
+  }
+
+  /// Ends the session on this phone only (no server call): clears the stored pair and the ETag cache,
+  /// and makes any refresh still in flight discard its result instead of writing it back. Prefer this
+  /// over clearing the [TokenStore] directly.
+  Future<void> clearSession() async {
+    _generation++;
     _etags.clear();
+    await tokens.clear();
   }
 
   Future<LoginResult> _loginResult(Map<String, dynamic> body) async {
@@ -172,9 +186,11 @@ class YazanApiClient {
   // ---- requests ------------------------------------------------------------
 
   /// GET. With [optionalAuth] the call also works signed out: the bearer is sent when a session
-  /// exists, nothing is sent (and nothing is thrown) when there is none, and a session that can no
-  /// longer be refreshed is dropped and the call is retried once as a guest. For public reads such
-  /// as the store catalogue.
+  /// exists, nothing is sent (and nothing is thrown) when there is none, and when an expired bearer
+  /// cannot be refreshed the call is retried once as a guest. A dead refresh token drops the session
+  /// first; a refresh that merely failed for now (rate limited, server error) keeps the stored session
+  /// for later calls and only this retry goes without the bearer. For public reads such as the store
+  /// catalogue.
   Future<Map<String, dynamic>> getJson(String path,
           {Map<String, dynamic>? query, bool optionalAuth = false}) =>
       _send<Map<String, dynamic>>('GET', path, query: query, optionalAuth: optionalAuth);
@@ -287,10 +303,12 @@ class YazanApiClient {
     bool auth = true,
     bool optionalAuth = false,
     bool retried = false,
+    bool guest = false,
     void Function(String? etag)? onEtag,
   }) async {
     final extra = <String, String>{...?headers};
-    final session = auth ? await tokens.read() : null;
+    // [guest]: an optionalAuth retry after a failed refresh, sent without the (expired) bearer.
+    final session = auth && !guest ? await tokens.read() : null;
     if (auth && session == null && !optionalAuth) {
       throw const ApiError(status: 401, code: 'yazan_mobile_bad_refresh');
     }
@@ -346,11 +364,15 @@ class YazanApiClient {
 
     final error = ApiError.fromJson(status, decoded);
     if (auth && session != null && !retried && error.action == ErrorAction.refreshThenRetry) {
+      var asGuest = false;
       try {
         await _refresh(session);
       } on ApiError {
-        // A public read carries on as a guest once the dead session has been cleared.
         if (!optionalAuth) rethrow;
+        // A public read carries on as a guest. Either the dead session has been cleared, or the
+        // refresh failed for now (429/5xx) and the session stays stored for later calls; either way
+        // re-sending the expired bearer would only earn another 401.
+        asGuest = true;
       }
       return _send<T>(method, path,
           data: data,
@@ -359,6 +381,7 @@ class YazanApiClient {
           auth: auth,
           optionalAuth: optionalAuth,
           retried: true,
+          guest: asGuest,
           onEtag: onEtag);
     }
     throw error;
@@ -373,32 +396,53 @@ class YazanApiClient {
   }
 
   Future<Session> _doRefresh(Session stale) async {
+    final generation = _generation;
     final current = await tokens.read();
+    // Signed out (or the store was cleared) after the request read its session: nothing to renew.
+    if (current == null || _generation != generation) throw _sessionEnded;
     // Someone else already refreshed while we waited.
-    if (current != null && current.accessToken != stale.accessToken) {
+    if (current.accessToken != stale.accessToken) {
       return current;
     }
+    final Map<String, dynamic> body;
     try {
-      final body = await _send<Map<String, dynamic>>(
+      body = await _send<Map<String, dynamic>>(
         'POST',
         '$_ns/auth/refresh',
         data: {'refresh_token': stale.refreshToken},
         auth: false,
       );
-      var s = Session.fromJson(body);
-      // A refresh response has no `user`; keep the one we already knew.
-      if (s.user == null && stale.user != null) s = s.copyWith(user: stale.user);
-      await tokens.write(s);
-      return s;
     } on ApiError catch (e) {
       if (e.action == ErrorAction.signIn || e.status == 401) {
-        await tokens.clear();
-        _etags.clear();
-        onSignedOut?.call();
+        // Only end the session this refresh was for: not one a sign-out already ended, nor a newer
+        // sign-in that replaced it meanwhile.
+        final stored = await tokens.read();
+        if (_generation == generation &&
+            stored != null &&
+            stored.accessToken == stale.accessToken) {
+          await clearSession();
+          onSignedOut?.call();
+        }
       }
       rethrow;
     }
+    var s = Session.fromJson(body);
+    // A refresh response has no `user`; keep the one we already knew.
+    if (s.user == null && stale.user != null) s = s.copyWith(user: stale.user);
+    // The session may have changed while the refresh was on the wire: re-read, then write only if
+    // it is still the one we renewed and nobody ended it.
+    final now = await tokens.read();
+    if (now != null && now.accessToken != stale.accessToken) {
+      // A new sign-in (or another refresh) replaced it: keep that one.
+      return now;
+    }
+    if (now == null || _generation != generation) throw _sessionEnded;
+    await tokens.write(s);
+    return s;
   }
+
+  /// What a refresh throws when the session ended while it ran (same code as "no session").
+  static const _sessionEnded = ApiError(status: 401, code: 'yazan_mobile_bad_refresh');
 }
 
 class _Cached {

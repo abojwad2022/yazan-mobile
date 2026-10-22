@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 /// `POST /yazan-mobile/v1/auth/social` (`YazanApiClient.socialLogin`) and gets the same session as
 /// the password sign-in. The buttons are OFF unless the build turns them on:
 ///
-///   --dart-define=YAZAN_GOOGLE_SERVER_CLIENT_ID=<web/server OAuth client id>   (Google)
+///   --dart-define=`YAZAN_GOOGLE_SERVER_CLIENT_ID=WEB_SERVER_OAUTH_CLIENT_ID`   (Google)
 ///   --dart-define=YAZAN_APPLE_SIGNIN=1                                         (Apple, iOS only)
 ///
 /// With neither flag (the CI default) the sign-in screen is exactly the password form.

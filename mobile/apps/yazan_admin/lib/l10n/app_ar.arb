@@ -776,5 +776,84 @@
   },
   "taxRateShipping": "تشمل الشحن",
   "taxRateCompound": "مركّبة",
-  "taxRateManaged": "تلقائية"
+  "taxRateManaged": "تلقائية",
+  "refundsTitle": "المبالغ المستردة",
+  "refundStart": "استرداد",
+  "refundOnlineOnly": "يحتاج الاسترداد إلى اتصال، ولا يُحفظ أبدًا على الهاتف.",
+  "refundFull": "مسترد بالكامل",
+  "refundRemaining": "يمكن استرداد ما يصل إلى {amount}.",
+  "@refundRemaining": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "refundSheetTitle": "استرداد مبلغ من هذا الطلب",
+  "refundAmountLabel": "المبلغ",
+  "refundReasonLabel": "السبب (اختياري)",
+  "refundRestock": "إعادة القطع المستردة إلى المخزون",
+  "refundRestockHelp": "تعود القطعة إلى المخزون.",
+  "refundRestockPartial": "لا يعيد إلى المخزون إلا استرداد كامل المبلغ المتبقي {amount}. في الاسترداد الجزئي عدّل المخزون بنفسك.",
+  "@refundRestockPartial": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "refundViaGateway": "الاسترداد عبر بوابة الدفع",
+  "refundViaGatewayHelp": "يُعيد مالًا حقيقيًا إلى العميل، ولا يمكن التراجع عنه.",
+  "refundManualNote": "يُسجَّل هذا استردادًا يدويًا: لا يُنقل أي مال. سوِّ المبلغ مع العميل بنفسك.",
+  "refundContinue": "متابعة",
+  "refundAmountInvalid": "أدخل مبلغًا مثل 12.50.",
+  "refundAmountZero": "أدخل مبلغًا أكبر من صفر.",
+  "refundAmountTooMuch": "أقصى ما يمكن استرداده في هذا الطلب {amount}.",
+  "@refundAmountTooMuch": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "refundMethodFallback": "وسيلة الدفع",
+  "refundConfirmManual": "تسجيل استرداد يدوي بمبلغ {amount}؟ لا يُنقل أي مال، وتسوّيه أنت بنفسك.",
+  "@refundConfirmManual": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "refundConfirmGateway": "إرسال {amount} إلى العميل عبر {method}؟ هذا ينقل مالًا حقيقيًا ولا يمكن التراجع عنه.",
+  "@refundConfirmGateway": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "method": {
+        "type": "String"
+      }
+    }
+  },
+  "refundConfirmGateway2Title": "استرداد {amount} عبر بوابة الدفع؟",
+  "@refundConfirmGateway2Title": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "refundConfirmGateway2Body": "سيُرسَل المال إلى العميل الآن، ولا يمكن التراجع عنه من هنا.",
+  "refundConfirmAction": "استرداد",
+  "refundNow": "استرداد الآن",
+  "securityReasonRefund": "أكّد هويتك لاسترداد مبلغ من هذا الطلب",
+  "refundDoneManual": "تم تسجيل الاسترداد اليدوي.",
+  "refundDoneGateway": "تم إرسال الاسترداد عبر بوابة الدفع.",
+  "refundOffline": "لم يصل رد من المتجر، فربما لم يتم الاسترداد. لم يُحفظ شيء على الهاتف. زر «حاول مرة أخرى» يرسل الطلب نفسه، فلا يُسترد المبلغ مرتين أبدًا.",
+  "refundBusy": "المتجر ما زال يعالج هذا الاسترداد. حاول بعد قليل.",
+  "refundChanged": "تغيّر هذا الطلب منذ فتحته، فلم يُسترد شيء. راجع المبالغ وابدأ الاسترداد من جديد.",
+  "refundNoPermission": "ليست لديك صلاحية استرداد مبالغ هذا الطلب.",
+  "refundFailed": "تعذّر إتمام الاسترداد.",
+  "refundDiscard": "تجاهل"
 }

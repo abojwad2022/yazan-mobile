@@ -2,6 +2,7 @@ import 'package:yazan_api_client/yazan_api_client.dart';
 import 'package:yazan_offline_sync/yazan_offline_sync.dart';
 
 import 'order_detail_controller.dart';
+import 'order_refund.dart';
 
 // Production wiring of the order screen's injected functions. Routes and bodies are the web
 // dashboard's (`dashboard-app/src/api/endpoints.js` -> `Yazan_REST_Orders`).
@@ -21,6 +22,24 @@ StatusSender statusSender(YazanApiClient client) => (
           'PUT',
           '/yazan/v1/orders/$id',
           data: {'status': status},
+          idempotencyKey: idempotencyKey,
+          ifMatch: version,
+        );
+
+/// `POST /yazan/v1/orders/{id}/refunds` `{amount, reason, restock, refund_payment}` — what the
+/// dashboard's `ordersApi.createRefund` sends. Online only, never through the outbox. The route is
+/// version-guarded for a phone session (`If-Match`, else 428) and exactly-once per
+/// `Idempotency-Key`; it answers 201 with the order detail.
+RefundSender refundSender(YazanApiClient client) => (
+      int id,
+      RefundDraft draft, {
+      required String version,
+      required String idempotencyKey,
+    }) =>
+        client.sendJson(
+          'POST',
+          '/yazan/v1/orders/$id/refunds',
+          data: draft.toJson(),
           idempotencyKey: idempotencyKey,
           ifMatch: version,
         );

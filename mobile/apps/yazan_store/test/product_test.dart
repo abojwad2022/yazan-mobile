@@ -179,6 +179,56 @@ void main() {
       await repo.refresh();
       expect(repo.lastSyncedAt, isNotNull);
     });
+
+    test('a complete refresh returns true', () async {
+      final repo = CatalogueRepository(fetch: (cursor) async => _page([_record(1, 'A')]));
+      expect(await repo.refresh(), isTrue);
+    });
+
+    test('a pull cut off by the page limit stamps no synced_at and returns false', () async {
+      final store = MemoryFeedStore()..rows[9] = _record(9, 'Old');
+      var fetched = 0;
+      final repo = CatalogueRepository(
+        store: store,
+        // The server never says "no more": the run stops at pullFeed's page limit.
+        fetch: (cursor) async {
+          fetched++;
+          return DeltaPage(
+              items: [_record(fetched, 'P$fetched')], cursor: 'c$fetched', hasMore: true, initial: true);
+        },
+        clock: () => DateTime.utc(2026, 10, 20),
+      );
+      expect(await repo.refresh(), isFalse);
+      expect(fetched, greaterThan(1));
+      expect(store.meta.containsKey(CatalogueRepository.syncedAtKey), isFalse);
+      expect(repo.lastSyncedAt, isNull);
+      // A staged first sync that did not finish applies nothing: the old rows stay.
+      expect([for (final p in await repo.products()) p.name], ['Old']);
+      expect(store.cursor, '');
+    });
+
+    test('an incomplete delta pull keeps the previous synced_at', () async {
+      final store = MemoryFeedStore();
+      var now = DateTime.utc(2026, 10, 20, 12);
+      var endless = false;
+      final repo = CatalogueRepository(
+        store: store,
+        fetch: (cursor) async => endless
+            ? DeltaPage(items: const [], cursor: '${cursor}x', hasMore: true, initial: false)
+            : _page([_record(1, 'A')]),
+        clock: () => now,
+      );
+      expect(await repo.refresh(), isTrue);
+      final first = store.meta[CatalogueRepository.syncedAtKey];
+      expect(first, '2026-10-20T12:00:00.000Z');
+
+      endless = true;
+      now = DateTime.utc(2026, 10, 21, 12);
+      expect(await repo.refresh(), isFalse);
+      expect(store.meta[CatalogueRepository.syncedAtKey], first);
+      expect(repo.lastSyncedAt, DateTime.utc(2026, 10, 20, 12));
+      expect(store.cursor, startsWith('c1x'), reason: 'the delta cursor advanced, so the next run resumes');
+    });
   });
 
   group('variations (ring sizes)', () {

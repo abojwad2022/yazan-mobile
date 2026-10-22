@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:yazan_admin/l10n/app_localizations.dart';
 import 'package:yazan_admin/src/dashboard/dashboard_format.dart';
 import 'package:yazan_admin/src/more/more_registry.dart';
+import 'package:yazan_admin/src/more/section_hosts.dart';
 import 'package:yazan_admin/src/more/staff_permissions.dart';
 import 'package:yazan_admin/src/shipping_tax/shipping_tax_page.dart';
 import 'package:yazan_admin/src/shipping_tax/shipping_tax_repository.dart';
@@ -10,6 +13,7 @@ import 'package:yazan_admin/src/shipping_tax/shipping_tax_snapshot.dart';
 import 'package:yazan_domain/yazan_domain.dart';
 import 'package:yazan_offline_sync/yazan_offline_sync.dart';
 
+import '../customers/fakes.dart' show customersMe;
 import '../dashboard/fakes.dart' show dashboardHost, tallScreen;
 import 'fakes.dart';
 
@@ -27,6 +31,27 @@ Future<void> _load(WidgetTester tester) async {
 }
 
 const _forbidden = ApiError(status: 403, code: 'yazan_forbidden');
+
+/// A 403 whose code the client does not map to hiding the feature (`Yazan_REST_Guard`).
+const _suspended = ApiError(status: 403, code: 'yazan_suspended');
+
+/// The Shipping & tax host's gate around [repo]'s page, with a scripted `/me`.
+Widget _gated(ShippingTaxRepository repo, Future<Map<String, dynamic>> Function() me) => dashboardHost(
+      const Locale('en'),
+      SectionPermissionGate(
+        loadPermissions: me,
+        apply: repo.applyPermissions,
+        title: (l) => l.shippingTaxTitle,
+        builder: (_) => ShippingTaxPage(repository: repo, showAppBar: true),
+      ),
+    );
+
+/// Puts both parts on the phone, as a past visit would have.
+Future<MemoryFeedStore> _cachedSettings() async {
+  final store = MemoryFeedStore();
+  await FakeShippingTaxServer().repository(store: store).refresh();
+  return store;
+}
 
 ShippingMethodInfo _method(String id, Map<String, String> values) => ShippingMethodInfo(
       instanceId: 1,
@@ -257,6 +282,45 @@ void main() {
       expect(await store.readAll(), isEmpty);
     });
 
+    test('a 403 with any code (yazan_suspended) drops that part from the phone', () async {
+      final store = await _cachedSettings();
+      final server = FakeShippingTaxServer()..zonesFailure = _suspended;
+      final repo = server.repository(store: store);
+      await repo.refresh();
+      expect(repo.shippingNoAccess, isTrue);
+      expect(repo.shipping, isNull);
+      expect(repo.lastRefreshFailed, isFalse);
+      expect((await store.readAll()).map((r) => r['id']), [ShippingTaxRepository.taxRow]);
+
+      server.taxFailure = _suspended;
+      await repo.refresh();
+      expect(repo.noAccess, isTrue);
+      expect(repo.tax, isNull);
+      expect(await store.readAll(), isEmpty);
+    });
+
+    test('a known map drops each part it does not allow; unknown keeps both', () async {
+      final store = await _cachedSettings();
+      final repo = FakeShippingTaxServer().repository(store: store);
+      await repo.ready;
+
+      await repo.applyPermissions(const StaffPermissions.unknown());
+      expect(repo.shipping, isNotNull);
+      expect(repo.tax, isNotNull);
+
+      await repo.applyPermissions(StaffPermissions.of(['tax.view']));
+      expect(repo.shippingNoAccess, isTrue);
+      expect(repo.shipping, isNull);
+      expect(repo.taxNoAccess, isFalse);
+      expect(repo.tax, isNotNull);
+      expect((await store.readAll()).map((r) => r['id']), [ShippingTaxRepository.taxRow]);
+
+      await repo.applyPermissions(StaffPermissions.of(['orders.view']));
+      expect(repo.noAccess, isTrue);
+      expect(repo.tax, isNull);
+      expect(await store.readAll(), isEmpty);
+    });
+
     test('the cached copy survives a restart unchanged', () async {
       final store = MemoryFeedStore();
       await FakeShippingTaxServer().repository(store: store).refresh();
@@ -270,6 +334,54 @@ void main() {
       expect(again.tax!.enabled, isTrue);
       expect(again.tax!.settings.first.value, 'yes');
       expect(again.tax!.classes.first.rates.first.percent, '8.875');
+    });
+  });
+
+  group('permission gate', () {
+    testWidgets('a map with neither part: the cached settings are never shown, and leave the phone', (tester) async {
+      tallScreen(tester);
+      final store = await _cachedSettings();
+      final server = FakeShippingTaxServer()..goOffline();
+      final me = Completer<Map<String, dynamic>>();
+      await tester.pumpWidget(_gated(server.repository(store: store), () => me.future));
+      await _load(tester);
+
+      expect(find.byKey(const ValueKey('section-permission-check')), findsOneWidget);
+      expect(find.byKey(const ValueKey('shipping-zone-3')), findsNothing);
+      expect(server.zoneCalls, 0);
+
+      me.complete(customersMe(['orders.view']));
+      await _load(tester);
+
+      expect(find.byKey(const ValueKey('shipping-zone-3')), findsNothing);
+      expect(find.text('No access'), findsOneWidget);
+      expect(await store.readAll(), isEmpty);
+    });
+
+    testWidgets('a map with tax only: the cached zones are dropped, the cached tax still shows', (tester) async {
+      tallScreen(tester);
+      final store = await _cachedSettings();
+      final server = FakeShippingTaxServer()..goOffline();
+      await tester.pumpWidget(_gated(server.repository(store: store), () async => customersMe(['tax.view'])));
+      await _load(tester);
+
+      expect(find.byKey(const ValueKey('shipping-no-access')), findsOneWidget);
+      expect(find.byKey(const ValueKey('shipping-zone-3')), findsNothing);
+      expect(_in('tax-rate-11-percent', find.text('8.875%')), findsOneWidget);
+      expect((await store.readAll()).map((r) => r['id']), [ShippingTaxRepository.taxRow]);
+    });
+
+    testWidgets('an unknown map (offline /me): the cached settings show as before', (tester) async {
+      tallScreen(tester);
+      final store = await _cachedSettings();
+      final server = FakeShippingTaxServer()..goOffline();
+      await tester.pumpWidget(_gated(server.repository(store: store), () async => throw Exception('offline')));
+      await _load(tester);
+
+      expect(find.byKey(const ValueKey('section-permission-check')), findsNothing);
+      expect(find.byKey(const ValueKey('shipping-zone-3')), findsOneWidget);
+      expect(find.byKey(const ValueKey('shiptax-stale')), findsOneWidget);
+      expect(await store.readAll(), hasLength(2));
     });
   });
 

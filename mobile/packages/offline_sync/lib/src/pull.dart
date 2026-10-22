@@ -84,6 +84,22 @@ class MemoryFeedStore implements FeedStore, FeedMetaStore {
   }
 }
 
+/// What one [pullFeedResult] run did.
+class PullResult {
+  const PullResult({required this.pages, required this.complete});
+
+  /// Pages fetched in this run.
+  final int pages;
+
+  /// True when the server's last page said there is no more (`has_more: false`). False when the run
+  /// stopped at `maxPages` first: a delta pull has saved its cursor and the next run resumes there; a
+  /// staged (replace) pull has applied nothing.
+  final bool complete;
+
+  @override
+  String toString() => 'PullResult(pages: $pages, complete: $complete)';
+}
+
 /// Pulls delta pages until the server says there is no more.
 ///
 /// The cursor is saved with each page, so an interrupted pull resumes where it stopped instead of
@@ -96,7 +112,28 @@ class MemoryFeedStore implements FeedStore, FeedMetaStore {
 ///   whose rows have no cursor).
 /// * [fullResync]: always start from an empty cursor and replace everything.
 /// Use for catalogue-sized feeds; the buffer holds the whole feed. Returns the pages fetched.
+///
+/// The page count alone does not say whether the feed was read to its end; use [pullFeedResult]
+/// when that matters (for example before stamping a "last synced" time).
 Future<int> pullFeed({
+  required Future<DeltaPage> Function(String cursor) fetch,
+  required FeedStore store,
+  int maxPages = 50,
+  bool replaceOnFirstSuccess = false,
+  bool fullResync = false,
+}) async =>
+    (await pullFeedResult(
+      fetch: fetch,
+      store: store,
+      maxPages: maxPages,
+      replaceOnFirstSuccess: replaceOnFirstSuccess,
+      fullResync: fullResync,
+    ))
+        .pages;
+
+/// [pullFeed], reporting whether the pull reached the end of the feed ([PullResult.complete]) as
+/// well as how many pages it fetched. Same modes, same guarantees.
+Future<PullResult> pullFeedResult({
   required Future<DeltaPage> Function(String cursor) fetch,
   required FeedStore store,
   int maxPages = 50,
@@ -107,6 +144,7 @@ Future<int> pullFeed({
   final staged = fullResync || (replaceOnFirstSuccess && cursor.isEmpty);
   if (staged) return _pullStaged(fetch, store, maxPages);
   var pages = 0;
+  var complete = false;
   while (pages < maxPages) {
     final page = await fetch(cursor);
     pages++;
@@ -117,12 +155,15 @@ Future<int> pullFeed({
       initial: page.initial && cursor.isEmpty,
     );
     cursor = page.cursor;
-    if (!page.hasMore) break;
+    if (!page.hasMore) {
+      complete = true;
+      break;
+    }
   }
-  return pages;
+  return PullResult(pages: pages, complete: complete);
 }
 
-Future<int> _pullStaged(
+Future<PullResult> _pullStaged(
   Future<DeltaPage> Function(String cursor) fetch,
   FeedStore store,
   int maxPages,
@@ -145,8 +186,9 @@ Future<int> _pullStaged(
         cursor: cursor,
         initial: true,
       );
-      break;
+      return PullResult(pages: pages, complete: true);
     }
   }
-  return pages;
+  // Cut off by maxPages: nothing was applied, so the cache and cursor are as they were.
+  return PullResult(pages: pages, complete: false);
 }

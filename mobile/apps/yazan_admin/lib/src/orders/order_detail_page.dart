@@ -2,15 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:yazan_offline_sync/yazan_offline_sync.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../more/staff_permissions.dart';
+import '../products/product_permissions.dart' show PermissionsLoader;
+import '../security/app_lock_scope.dart';
 import 'conflict_page.dart';
 import 'no_access_view.dart';
 import 'order_detail_controller.dart';
+import 'order_refund.dart';
 import 'order_summary.dart';
 import 'orders_format.dart';
+import 'refund_sheet.dart';
 
 enum _ConflictChoice { keepServer, overwrite }
 
-/// Order detail: status change (online-only, If-Match + Idempotency-Key) and notes (outbox).
+/// Order detail: status change and refunds (online-only, If-Match + Idempotency-Key) and notes
+/// (outbox).
 class OrderDetailPage extends StatefulWidget {
   const OrderDetailPage({
     super.key,
@@ -21,6 +27,9 @@ class OrderDetailPage extends StatefulWidget {
     required this.sync,
     this.loadNotes,
     this.newKey,
+    this.sendRefund,
+    this.permissions = const StaffPermissions.unknown(),
+    this.loadPermissions,
   });
 
   final OrderSummary summary;
@@ -32,6 +41,14 @@ class OrderDetailPage extends StatefulWidget {
 
   /// Key factory for tests; defaults to `YazanApiClient.newIdempotencyKey`.
   final String Function()? newKey;
+
+  /// `POST /orders/{id}/refunds`. Without it (or without `orders.refund` in the permission map)
+  /// there is no Refund button.
+  final RefundSender? sendRefund;
+  final StaffPermissions permissions;
+
+  /// Reads `/yazan-mobile/v1/me` when [permissions] is not known yet.
+  final PermissionsLoader? loadPermissions;
 
   @override
   State<OrderDetailPage> createState() => _OrderDetailPageState();
@@ -48,6 +65,9 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     sync: widget.sync,
     loadNotes: widget.loadNotes,
     newKey: widget.newKey,
+    sendRefund: widget.sendRefund,
+    permissions: widget.permissions,
+    loadPermissions: widget.loadPermissions,
   );
   final TextEditingController _note = TextEditingController();
 
@@ -144,6 +164,186 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     }
   }
 
+  // ---- refunds -------------------------------------------------------------------------------
+
+  String _money(String amount) => _c.currency.isEmpty ? amount : '$amount ${_c.currency}';
+
+  Future<bool> _ask({required String body, String? title, required String action, required Key key}) async {
+    final l = AppLocalizations.of(context);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: title == null ? null : Text(title),
+        content: Text(body),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(l.cancel)),
+          FilledButton(key: key, onPressed: () => Navigator.of(ctx).pop(true), child: Text(action)),
+        ],
+      ),
+    );
+    return ok == true;
+  }
+
+  /// Sheet -> confirmation (a second one for money through the gateway) -> identity check -> send.
+  /// Cancelled or refused at any step: nothing is sent.
+  Future<void> _startRefund() async {
+    final l = AppLocalizations.of(context);
+    final draft = await showModalBottomSheet<RefundDraft>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => RefundSheet(
+        remaining: _c.remainingRefund,
+        currency: _c.currency,
+        gatewayAvailable: _c.gatewayRefundAvailable,
+      ),
+    );
+    if (draft == null || !mounted) return;
+    final amount = _money(draft.amount);
+    final method = _c.paymentMethod.isEmpty ? l.refundMethodFallback : _c.paymentMethod;
+    final first = await _ask(
+      body: draft.viaGateway ? l.refundConfirmGateway(amount, method) : l.refundConfirmManual(amount),
+      action: l.refundConfirmAction,
+      key: const ValueKey('refund-confirm'),
+    );
+    if (!first || !mounted) return;
+    if (draft.viaGateway) {
+      final second = await _ask(
+        title: l.refundConfirmGateway2Title(amount),
+        body: l.refundConfirmGateway2Body,
+        action: l.refundNow,
+        key: const ValueKey('refund-confirm-gateway'),
+      );
+      if (!second || !mounted) return;
+    }
+    if (!await confirmSensitive(context, l.securityReasonRefund) || !mounted) return;
+    _handleRefund(await _c.refund(draft));
+  }
+
+  /// "Try again" asks for the same identity check as the first send. Refused or cancelled: nothing
+  /// is sent and the attempt stays for the button.
+  Future<void> _retryRefund() async {
+    final l = AppLocalizations.of(context);
+    if (!await confirmSensitive(context, l.securityReasonRefund) || !mounted) return;
+    _handleRefund(await _c.retryRefund());
+  }
+
+  void _handleRefund(RefundResult result) {
+    if (!mounted || result != RefundResult.done) return;
+    // Every other outcome is shown inline from the controller's state.
+    final l = AppLocalizations.of(context);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(_c.refundWasGateway ? l.refundDoneGateway : l.refundDoneManual)),
+    );
+  }
+
+  Widget? _refundCard(BuildContext context, AppLocalizations l) {
+    final refunds = _c.refunds;
+    final canRefund = _c.canRefund;
+    String? message;
+    var retry = false;
+    switch (_c.refundResult) {
+      case RefundResult.offline:
+        message = l.refundOffline;
+        retry = _c.refundPending;
+      case RefundResult.busy:
+        message = l.refundBusy;
+        retry = _c.refundPending;
+      case RefundResult.changed:
+        message = l.refundChanged;
+      case RefundResult.noAccess:
+        message = _c.refundMessage.isEmpty ? l.refundNoPermission : _c.refundMessage;
+      case RefundResult.failed:
+        message = _c.refundMessage.isEmpty ? l.refundFailed : _c.refundMessage;
+        retry = _c.refundPending;
+      case RefundResult.tooMuch:
+        message = l.refundAmountTooMuch(_money(_c.remainingRefund));
+      case RefundResult.invalid:
+        message = l.refundAmountInvalid;
+      case RefundResult.done:
+      case null:
+        message = null;
+    }
+    if (refunds.isEmpty && !canRefund && message == null) return null;
+    final t = Theme.of(context).textTheme;
+    final muted = Theme.of(context).disabledColor;
+    final busy = _c.refunding || _c.loading;
+    return Card(
+      key: const ValueKey('refund-card'),
+      child: Padding(
+        padding: const EdgeInsetsDirectional.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(l.refundsTitle, style: t.titleSmall),
+            for (final r in refunds)
+              ListTile(
+                key: ValueKey('refund-${r.id}'),
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                title: Text('−${_money(r.amount)}', textDirection: TextDirection.ltr),
+                subtitle: Text(
+                  [
+                    if (r.date.isNotEmpty) r.date,
+                    if (r.by.isNotEmpty) r.by,
+                    if (r.reason.isNotEmpty) r.reason,
+                  ].join(' · '),
+                ),
+              ),
+            if (!_c.hasRefundable && refunds.isNotEmpty)
+              Text(l.refundFull, key: const ValueKey('refund-full'), style: TextStyle(color: muted)),
+            if (canRefund) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Icon(Icons.wifi_outlined, size: 20),
+                  const SizedBox(width: 12),
+                  Expanded(child: Text(l.refundOnlineOnly)),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(l.refundRemaining(_money(_c.remainingRefund))),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  FilledButton.tonal(
+                    key: const ValueKey('refund-start'),
+                    onPressed: busy || _c.refundPending ? null : _startRefund,
+                    child: Text(l.refundStart),
+                  ),
+                  if (_c.refunding)
+                    const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+                ],
+              ),
+            ],
+            if (message != null) ...[
+              const SizedBox(height: 12),
+              Text(message, key: const ValueKey('refund-message')),
+              if (retry)
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    TextButton(
+                      key: const ValueKey('refund-retry'),
+                      onPressed: busy ? null : _retryRefund,
+                      child: Text(l.retry),
+                    ),
+                    TextButton(
+                      key: const ValueKey('refund-dismiss'),
+                      onPressed: busy ? null : _c.dismissRefund,
+                      child: Text(l.refundDiscard),
+                    ),
+                  ],
+                ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
   // ---- notes -----------------------------------------------------------------------------------
 
   Future<void> _addNote() async {
@@ -181,6 +381,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     final lines = rawLines is List ? rawLines : const <Object?>[];
     final payment = d == null ? '' : '${d['payment_method'] ?? ''}';
     final billing = d == null ? '' : '${d['billing_formatted'] ?? ''}';
+    final refundCard = _c.loading || _c.failed ? null : _refundCard(context, l);
     return ListView(
       padding: const EdgeInsetsDirectional.all(16),
       children: [
@@ -232,6 +433,10 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
             Text(l.orderBilling, style: t.titleSmall),
             Text(billing),
           ],
+        ],
+        if (refundCard != null) ...[
+          const SizedBox(height: 16),
+          refundCard,
         ],
         const SizedBox(height: 24),
         ..._notesSection(context, l),

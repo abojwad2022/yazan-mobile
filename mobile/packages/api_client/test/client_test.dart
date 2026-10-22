@@ -11,14 +11,18 @@ import 'package:yazan_domain/yazan_domain.dart';
 typedef Handler = (int, Object?, Map<String, String>) Function(RequestOptions o);
 
 class FakeAdapter implements HttpClientAdapter {
-  FakeAdapter(this.handler);
+  FakeAdapter(this.handler, {this.before});
   final Handler handler;
+
+  /// Runs before the answer is made, so a test can hold one request on the wire.
+  final Future<void> Function(RequestOptions o)? before;
   final List<RequestOptions> seen = [];
 
   @override
   Future<ResponseBody> fetch(RequestOptions options, Stream<Uint8List>? requestStream,
       Future<void>? cancelFuture) async {
     seen.add(options);
+    await before?.call(options);
     final (status, body, headers) = handler(options);
     final text = body == null ? '' : jsonEncode(body);
     return ResponseBody.fromString(text, status, headers: {
@@ -283,6 +287,175 @@ void main() {
       final a = FakeAdapter((o) => (200, {'ok': true}, {}));
       await expectLater(make(a, store).getJson('/yazan-mobile/v1/me'), throwsA(isA<ApiError>()));
       expect(a.seen, isEmpty);
+    });
+  });
+
+  group('a refresh that fails for now (429/5xx) on a public read', () {
+    Map<String, dynamic> feed() => {'items': <Object>[], 'cursor': 'c1', 'has_more': false, 'initial': true};
+
+    for (final status in [429, 503]) {
+      test('$status: the read is retried once as a guest and the session is kept', () async {
+        final store = MemoryTokenStore();
+        await store.write(Session.fromJson(pair('yzm_old', 'yzr_old')));
+        var signedOut = 0;
+        final a = FakeAdapter((o) {
+          if (o.path.endsWith('/auth/refresh')) {
+            return (status, {'code': status == 429 ? 'yazan_rate_limited' : 'internal_error'}, {});
+          }
+          return o.headers.containsKey('Authorization')
+              ? (401, {'code': 'yazan_mobile_bad_token'}, {})
+              : (200, feed(), {});
+        });
+        final page = await make(a, store, onOut: () => signedOut++).syncCatalog();
+        expect(page.cursor, 'c1');
+        final reads = a.seen.where((o) => o.path.endsWith('/sync/catalog')).toList();
+        expect(reads, hasLength(2));
+        expect(reads.first.headers['Authorization'], 'Bearer yzm_old');
+        expect(reads.last.headers.containsKey('Authorization'), isFalse);
+        expect((await store.read())!.refreshToken, 'yzr_old', reason: 'not a dead session');
+        expect(signedOut, 0);
+      });
+    }
+
+    test('getJson(optionalAuth) behaves the same (verify uses it)', () async {
+      final store = MemoryTokenStore();
+      await store.write(Session.fromJson(pair('yzm_old', 'yzr_old')));
+      final a = FakeAdapter((o) {
+        if (o.path.endsWith('/auth/refresh')) return (502, null, {});
+        return o.headers.containsKey('Authorization')
+            ? (401, {'code': 'yazan_mobile_bad_token'}, {})
+            : (200, {'status': 'genuine'}, {});
+      });
+      final body =
+          await make(a, store).getJson('/yazan-mobile/v1/verify/ABC-123', optionalAuth: true);
+      expect(body['status'], 'genuine');
+      expect(a.seen.last.headers.containsKey('Authorization'), isFalse);
+      expect(await store.read(), isNotNull);
+    });
+
+    test('a read that needs a session still throws and keeps the session', () async {
+      final store = MemoryTokenStore();
+      await store.write(Session.fromJson(pair('yzm_old', 'yzr_old')));
+      final a = FakeAdapter((o) => o.path.endsWith('/auth/refresh')
+          ? (503, null, {})
+          : (401, {'code': 'yazan_mobile_bad_token'}, {}));
+      await expectLater(make(a, store).getJson('/yazan-mobile/v1/me'),
+          throwsA(isA<ApiError>().having((e) => e.status, 'status', 503)));
+      expect((await store.read())!.accessToken, 'yzm_old');
+      expect(a.seen.where((o) => o.path.endsWith('/me')), hasLength(1));
+    });
+  });
+
+  group('a refresh in flight when the session changes', () {
+    /// Holds the refresh on the wire until `release` completes; `started` completes when it is sent.
+    ({FakeAdapter adapter, Completer<void> started, Completer<void> release}) held(Handler handler) {
+      final started = Completer<void>();
+      final release = Completer<void>();
+      final adapter = FakeAdapter(handler, before: (o) async {
+        if (o.path.endsWith('/auth/refresh')) {
+          started.complete();
+          await release.future;
+        }
+      });
+      return (adapter: adapter, started: started, release: release);
+    }
+
+    (int, Object?, Map<String, String>) server(RequestOptions o, {Set<String> good = const {}}) {
+      if (o.path.endsWith('/auth/refresh')) return (200, pair('yzm_new', 'yzr_new'), {});
+      if (o.path.endsWith('/auth/logout')) return (200, {'ok': true}, {});
+      if (o.path.endsWith('/auth/login')) return (200, pair('yzm_login', 'yzr_login'), {});
+      final bearer = o.headers['Authorization'];
+      if (bearer == null && o.path.endsWith('/sync/catalog')) {
+        return (200, {'items': <Object>[], 'cursor': 'guest', 'has_more': false, 'initial': true}, {});
+      }
+      return good.contains(bearer)
+          ? (200, {'ok': true}, {})
+          : (401, {'code': 'yazan_mobile_bad_token'}, {});
+    }
+
+    test('logout is not undone by the refresh coming back', () async {
+      final store = MemoryTokenStore();
+      await store.write(Session.fromJson(pair('yzm_old', 'yzr_old')));
+      var signedOut = 0;
+      final h = held((o) => server(o, good: {'Bearer yzm_new'}));
+      final c = make(h.adapter, store, onOut: () => signedOut++);
+
+      final pending = c.getJson('/yazan-mobile/v1/me');
+      await h.started.future;
+      await c.logout(); // the server accepts the old token's logout
+      h.release.complete();
+
+      await expectLater(pending, throwsA(isA<ApiError>()));
+      expect(await store.read(), isNull, reason: 'the renewed pair must not be written back');
+      expect(h.adapter.seen.where((o) => o.headers['Authorization'] == 'Bearer yzm_new'), isEmpty);
+      expect(signedOut, 0, reason: 'a deliberate sign-out is not reported as a lost session');
+    });
+
+    test('clearSession during the refresh discards it too; a public read carries on as a guest',
+        () async {
+      final store = MemoryTokenStore();
+      await store.write(Session.fromJson(pair('yzm_old', 'yzr_old')));
+      final h = held(server);
+      final c = make(h.adapter, store);
+
+      final pending = c.syncCatalog();
+      await h.started.future;
+      await c.clearSession();
+      h.release.complete();
+
+      expect((await pending).cursor, 'guest');
+      expect(await store.read(), isNull);
+      expect(h.adapter.seen.last.headers.containsKey('Authorization'), isFalse);
+    });
+
+    test('a token store cleared directly (not through the client) is respected', () async {
+      final store = MemoryTokenStore();
+      await store.write(Session.fromJson(pair('yzm_old', 'yzr_old')));
+      final h = held((o) => server(o, good: {'Bearer yzm_new'}));
+      final c = make(h.adapter, store);
+
+      final pending = c.getJson('/yazan-mobile/v1/me');
+      await h.started.future;
+      await store.clear();
+      h.release.complete();
+
+      await expectLater(pending, throwsA(isA<ApiError>()));
+      expect(await store.read(), isNull);
+    });
+
+    test('a new sign-in meanwhile is kept, and the waiting call uses it', () async {
+      final store = MemoryTokenStore();
+      await store.write(Session.fromJson(pair('yzm_old', 'yzr_old')));
+      final h = held((o) => server(o, good: {'Bearer yzm_login'}));
+      final c = make(h.adapter, store);
+
+      final pending = c.getJson('/yazan-mobile/v1/me');
+      await h.started.future;
+      await c.login(login: 'a', password: 'b');
+      h.release.complete();
+
+      expect((await pending)['ok'], true);
+      expect((await store.read())!.accessToken, 'yzm_login');
+      expect(h.adapter.seen.last.headers['Authorization'], 'Bearer yzm_login');
+    });
+
+    test('a dead refresh token does not wipe a newer sign-in', () async {
+      final store = MemoryTokenStore();
+      await store.write(Session.fromJson(pair('yzm_old', 'yzr_old')));
+      var signedOut = 0;
+      final h = held((o) => o.path.endsWith('/auth/refresh')
+          ? (401, {'code': 'yazan_mobile_bad_refresh'}, {})
+          : server(o));
+      final c = make(h.adapter, store, onOut: () => signedOut++);
+
+      final pending = c.getJson('/yazan-mobile/v1/me');
+      await h.started.future;
+      await c.login(login: 'a', password: 'b');
+      h.release.complete();
+
+      await expectLater(pending, throwsA(isA<ApiError>()));
+      expect((await store.read())!.accessToken, 'yzm_login');
+      expect(signedOut, 0);
     });
   });
 

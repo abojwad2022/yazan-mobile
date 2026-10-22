@@ -3,6 +3,7 @@ import 'package:yazan_api_client/yazan_api_client.dart';
 import 'package:yazan_domain/yazan_domain.dart';
 import 'package:yazan_offline_sync/yazan_offline_sync.dart';
 
+import '../more/staff_permissions.dart';
 import 'activity_snapshot.dart';
 
 /// `GET /yazan/v1/audit` (needs `audit.view`): one page of the activity log, newest first, with the
@@ -19,8 +20,10 @@ AuditFetch auditFetch(YazanApiClient client) =>
 /// [loadMore] appends the next page. Only the unfiltered first page is saved, as one row (id
 /// [rowId]) of a [FeedStore] in the encrypted per-account database, with its "as of" time. A failed
 /// refresh keeps the cached copy and sets [lastRefreshFailed]; a failed [loadMore] keeps what is
-/// shown and sets [loadMoreFailed]. A 403 (`ErrorAction.hideFeature`) sets [noAccess] and drops the
-/// cached copy, so a revoked permission does not leave the log on the phone.
+/// shown and sets [loadMoreFailed]. Any 403 (whatever its code, e.g. `yazan_forbidden` or
+/// `yazan_suspended`), or an `ErrorAction.hideFeature` answer, sets [noAccess] and drops the cached
+/// copy, so a revoked permission does not leave the log on the phone. So does a known `/me`
+/// permission map without [permission] (see [applyPermissions]).
 ///
 /// Changing the filter discards any answer still in flight for the old one.
 class ActivityRepository extends ChangeNotifier {
@@ -41,6 +44,9 @@ class ActivityRepository extends ChangeNotifier {
 
   /// The row id of the cached first page.
   static const rowId = 1;
+
+  /// The RBAC slug the log needs.
+  static const permission = 'audit.view';
 
   /// Entries asked for per page (the web dashboard's 50).
   final int perPage;
@@ -82,19 +88,38 @@ class ActivityRepository extends ChangeNotifier {
   bool get loadMoreFailed => _moreFailed;
   bool get noAccess => _noAccess;
 
+  /// A refusal that means this account may not read the log: any 403, or an answer the client maps
+  /// to hiding the feature.
+  static bool _forbidden(ApiError e) => e.status == 403 || e.action == ErrorAction.hideFeature;
+
   Future<void> _reload() async {
     try {
       for (final r in await _store.readAll()) {
         if (r['id'] == rowId) {
           final cached = ActivitySnapshot.fromJson(r);
           _cached = cached;
-          if (_snapshot == null && _filter.isEmpty) _snapshot = cached;
+          if (_snapshot == null && _filter.isEmpty && !_noAccess) _snapshot = cached;
           if (_facets.isEmpty) _facets = cached.facets;
         }
       }
-    } on Exception {
+    } catch (_) {
       // An unreadable cache shows as empty; the next refresh fills it.
     }
+    _notify();
+  }
+
+  /// Applies the `/me` permission map: when it is known and lacks [permission], the log is refused
+  /// here as on a 403 (cached copy dropped from memory and the phone, any answer in flight
+  /// discarded). An unknown map changes nothing; the server stays the judge.
+  Future<void> applyPermissions(StaffPermissions permissions) async {
+    if (!permissions.known || permissions.allows(permission)) return;
+    await _ready;
+    if (_disposed) return;
+    _generation++;
+    _loading = false;
+    _loadingMore = false;
+    _loaded = true;
+    await _forbid();
     _notify();
   }
 
@@ -130,7 +155,7 @@ class ActivityRepository extends ChangeNotifier {
       }
     } on ApiError catch (e) {
       if (generation != _generation || _disposed) return;
-      if (e.action == ErrorAction.hideFeature) {
+      if (_forbidden(e)) {
         await _forbid();
       } else {
         _failed = true;
@@ -162,7 +187,7 @@ class ActivityRepository extends ChangeNotifier {
       if (!next.facets.isEmpty) _facets = next.facets;
     } on ApiError catch (e) {
       if (generation != _generation || _disposed) return;
-      if (e.action == ErrorAction.hideFeature) {
+      if (_forbidden(e)) {
         await _forbid();
       } else {
         _moreFailed = true;

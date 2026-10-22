@@ -276,6 +276,75 @@ void main() {
       );
       expect(n, 3);
     });
+
+    group('pullFeedResult reports whether the feed was read to its end', () {
+      test('a delta pull that reaches has_more: false is complete', () async {
+        final fs = MemoryFeedStore();
+        final pages = {
+          '': page([{'id': 1}], 'c1', more: true, initial: true),
+          'c1': page([{'id': 2}], 'c2'),
+        };
+        final r = await pullFeedResult(fetch: (c) async => pages[c]!, store: fs);
+        expect(r.pages, 2);
+        expect(r.complete, isTrue);
+        expect(fs.cursor, 'c2');
+      });
+
+      test('a delta pull cut off by maxPages is incomplete but keeps its cursor', () async {
+        final fs = MemoryFeedStore();
+        final r = await pullFeedResult(
+          fetch: (c) async => page([{'id': c.length + 1}], '${c}x', more: true),
+          store: fs,
+          maxPages: 2,
+        );
+        expect(r.pages, 2);
+        expect(r.complete, isFalse);
+        expect(fs.cursor, 'xx', reason: 'the next run resumes where this one stopped');
+      });
+
+      test('a staged pull cut off by maxPages is incomplete and applies nothing', () async {
+        final fs = MemoryFeedStore()..rows[99] = {'id': 99};
+        final r = await pullFeedResult(
+          fetch: (c) async => page([{'id': 1}], '${c}x', more: true),
+          store: fs,
+          maxPages: 2,
+          replaceOnFirstSuccess: true,
+        );
+        expect(r.pages, 2);
+        expect(r.complete, isFalse);
+        expect(fs.rows.keys.toSet(), {99});
+        expect(fs.cursor, '');
+      });
+
+      test('a staged pull that reaches the last page is complete and swaps once', () async {
+        final fs = MemoryFeedStore()..rows[99] = {'id': 99};
+        final pages = {
+          '': page([{'id': 1}], 'c1', more: true, initial: true),
+          'c1': page([{'id': 2}], 'c2'),
+        };
+        final r = await pullFeedResult(
+          fetch: (c) async => pages[c]!,
+          store: fs,
+          fullResync: true,
+        );
+        expect(r.complete, isTrue);
+        expect(fs.rows.keys.toSet(), {1, 2});
+        expect(fs.cursor, 'c2');
+      });
+
+      test('the last page landing exactly on maxPages still counts as complete', () async {
+        final fs = MemoryFeedStore();
+        final pages = {
+          '': page([{'id': 1}], 'c1', more: true, initial: true),
+          'c1': page([{'id': 2}], 'c2'),
+        };
+        final r = await pullFeedResult(fetch: (c) async => pages[c]!, store: fs, maxPages: 2);
+        expect(r.complete, isTrue);
+        final staged = await pullFeedResult(
+            fetch: (c) async => pages[c]!, store: MemoryFeedStore(), maxPages: 2, fullResync: true);
+        expect(staged.complete, isTrue);
+      });
+    });
   });
 }
 

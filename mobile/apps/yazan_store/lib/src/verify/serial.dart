@@ -52,10 +52,16 @@ bool _isYazanHost(String host, String? siteHost) {
 /// of YAZAN's verification page (`yazanus.com/verify-ring/{serial}/`, or its `yz_serial` / `serial`
 /// query value).
 ///
-/// Returns null when the code is anything else, so a stray code (a Wi-Fi login, a shop sign, another
-/// site's verification page) is never sent to the server as if it were a serial. Arabic-Indic digits
-/// and pasted dashes are accepted the same way [cleanSerial] accepts them; nothing else is "cleaned"
-/// into a serial.
+/// What counts:
+/// * An address only when it is http(s), on a YAZAN host, and points at `verify-ring`; any other
+///   address (a shop's site, another site's verification page) returns null.
+/// * Plain text only when it is already serial-shaped: 3 to 40 letters, digits and hyphens, nothing
+///   else (so a Wi-Fi login or a sentence returns null). The app does not know the server's serial
+///   format, so any such text is passed on, including a stray code that merely looks like one (a
+///   product barcode's digits, say); the server decides whether it is a real serial.
+///
+/// Arabic-Indic digits and pasted dashes are accepted the same way [cleanSerial] accepts them; nothing
+/// else is "cleaned" into a serial.
 ///
 /// [siteHost] is the one host besides `yazanus.com` (and its subdomains) whose addresses count; it
 /// defaults to the host of the build's `YAZAN_BASE_URL`.

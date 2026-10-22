@@ -8,11 +8,13 @@ import 'package:yazan_admin/src/activity/activity_repository.dart';
 import 'package:yazan_admin/src/activity/activity_snapshot.dart';
 import 'package:yazan_admin/src/dashboard/dashboard_format.dart';
 import 'package:yazan_admin/src/more/more_registry.dart';
+import 'package:yazan_admin/src/more/section_hosts.dart';
 import 'package:yazan_admin/src/more/staff_permissions.dart';
 import 'package:yazan_admin/src/storage/admin_stores.dart';
 import 'package:yazan_domain/yazan_domain.dart';
 import 'package:yazan_offline_sync/yazan_offline_sync.dart';
 
+import '../customers/fakes.dart' show customersMe;
 import '../dashboard/fakes.dart' show dashboardHost, tallScreen;
 import 'fakes.dart';
 
@@ -31,6 +33,27 @@ Future<void> _load(WidgetTester tester) async {
 }
 
 const _forbidden = ApiError(status: 403, code: 'yazan_forbidden');
+
+/// A 403 whose code the client does not map to hiding the feature (`Yazan_REST_Guard`).
+const _suspended = ApiError(status: 403, code: 'yazan_suspended');
+
+/// The Activity host's gate around [repo]'s page, with a scripted `/me`.
+Widget _gated(ActivityRepository repo, Future<Map<String, dynamic>> Function() me) => dashboardHost(
+      const Locale('en'),
+      SectionPermissionGate(
+        loadPermissions: me,
+        apply: repo.applyPermissions,
+        title: (l) => l.activityTitle,
+        builder: (_) => ActivityPage(repository: repo, showAppBar: true),
+      ),
+    );
+
+/// Puts the whole log's first page on the phone, as a past visit would have.
+Future<MemoryFeedStore> _cachedLog() async {
+  final store = MemoryFeedStore();
+  await FakeAuditServer().repository(store: store).refresh();
+  return store;
+}
 
 void main() {
   testWidgets('English: newest first, with object, actor and time kept left to right', (tester) async {
@@ -374,6 +397,50 @@ void main() {
       expect(await store.readAll(), isEmpty);
     });
 
+    test('a 403 with any code (yazan_suspended) drops the cached copy, on refresh and on more', () async {
+      final store = MemoryFeedStore();
+      final server = FakeAuditServer();
+      final repo = server.repository(store: store);
+      await repo.refresh();
+      expect(await store.readAll(), hasLength(1));
+
+      server.failure = _suspended;
+      await repo.refresh();
+      expect(repo.noAccess, isTrue);
+      expect(repo.snapshot, isNull);
+      expect(repo.lastRefreshFailed, isFalse);
+      expect(await store.readAll(), isEmpty);
+
+      server.failure = null;
+      final paged = server.repository(store: store, perPage: 2);
+      await paged.refresh();
+      expect(await store.readAll(), hasLength(1));
+      server.failure = _suspended;
+      await paged.loadMore();
+      expect(paged.noAccess, isTrue);
+      expect(paged.loadMoreFailed, isFalse);
+      expect(paged.snapshot, isNull);
+      expect(await store.readAll(), isEmpty);
+    });
+
+    test('a known map without audit.view drops the cache; unknown or allowing keeps it', () async {
+      final store = await _cachedLog();
+      final repo = FakeAuditServer().repository(store: store);
+      await repo.ready;
+
+      await repo.applyPermissions(const StaffPermissions.unknown());
+      expect(repo.snapshot, isNotNull);
+      await repo.applyPermissions(StaffPermissions.of(['audit.view']));
+      expect(repo.snapshot, isNotNull);
+      expect(repo.noAccess, isFalse);
+
+      await repo.applyPermissions(StaffPermissions.of(['orders.view']));
+      expect(repo.noAccess, isTrue);
+      expect(repo.snapshot, isNull);
+      expect(repo.facets.isEmpty, isTrue);
+      expect(await store.readAll(), isEmpty);
+    });
+
     test('the cached copy survives a restart unchanged', () async {
       final store = MemoryFeedStore();
       await FakeAuditServer().repository(store: store).refresh();
@@ -388,6 +455,62 @@ void main() {
       expect(again.snapshot!.entries[1].changes, isEmpty);
       expect(again.facets.actions, contains('auth.login'));
       expect(again.facets.objectTypes, ['auth', 'order', 'product']);
+    });
+  });
+
+  group('permission gate', () {
+    testWidgets('a map without audit.view: the cached rows are never shown, and leave the phone', (tester) async {
+      tallScreen(tester);
+      final store = await _cachedLog();
+      final server = FakeAuditServer()..goOffline();
+      final me = Completer<Map<String, dynamic>>();
+      await tester.pumpWidget(_gated(server.repository(store: store), () => me.future));
+      await _load(tester);
+
+      // Still asking: the check shows, the cached log does not.
+      expect(find.byKey(const ValueKey('section-permission-check')), findsOneWidget);
+      expect(find.byKey(const ValueKey('activity-entry-5')), findsNothing);
+      expect(server.asked, isEmpty);
+
+      me.complete(customersMe(['orders.view']));
+      await _load(tester);
+
+      expect(find.byKey(const ValueKey('activity-entry-5')), findsNothing);
+      expect(find.text('No access'), findsOneWidget);
+      expect(await store.readAll(), isEmpty);
+    });
+
+    testWidgets('an unknown map (offline /me): the cached log shows as before', (tester) async {
+      tallScreen(tester);
+      final store = await _cachedLog();
+      final server = FakeAuditServer()..goOffline();
+      await tester.pumpWidget(_gated(server.repository(store: store), () async => throw Exception('offline')));
+      await _load(tester);
+
+      expect(find.byKey(const ValueKey('section-permission-check')), findsNothing);
+      expect(find.byKey(const ValueKey('activity-entry-5')), findsOneWidget);
+      expect(find.byKey(const ValueKey('activity-stale')), findsOneWidget);
+      expect(await store.readAll(), hasLength(1));
+    });
+
+    testWidgets('a slow /me opens the page after the grace; a late refusal still drops the rows', (tester) async {
+      tallScreen(tester);
+      final store = await _cachedLog();
+      final server = FakeAuditServer()..goOffline();
+      final me = Completer<Map<String, dynamic>>();
+      await tester.pumpWidget(_gated(server.repository(store: store), () => me.future));
+      for (var i = 0; i < 25; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+
+      expect(find.byKey(const ValueKey('section-permission-check')), findsNothing);
+      expect(find.byKey(const ValueKey('activity-entry-5')), findsOneWidget);
+
+      me.complete(customersMe(['orders.view']));
+      await _load(tester);
+      expect(find.byKey(const ValueKey('activity-entry-5')), findsNothing);
+      expect(find.text('No access'), findsOneWidget);
+      expect(await store.readAll(), isEmpty);
     });
   });
 

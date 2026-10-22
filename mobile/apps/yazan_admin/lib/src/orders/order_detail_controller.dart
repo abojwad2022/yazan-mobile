@@ -3,6 +3,11 @@ import 'package:yazan_api_client/yazan_api_client.dart';
 import 'package:yazan_domain/yazan_domain.dart';
 import 'package:yazan_offline_sync/yazan_offline_sync.dart';
 
+import '../more/staff_permissions.dart';
+import '../products/product_input.dart' show plainPrice;
+import '../products/product_permissions.dart' show PermissionsLoader;
+import 'order_refund.dart';
+
 /// An order body plus its version token (the ETag, quotes stripped).
 typedef VersionedOrder = ({Map<String, dynamic> body, String? version});
 
@@ -94,6 +99,17 @@ class StatusConflict {
   final String? serverVersion;
 }
 
+class _RefundAttempt {
+  _RefundAttempt(this.draft, this.key, this.version);
+
+  final RefundDraft draft;
+
+  /// Created once per refund; "Try again" sends the same key, body and If-Match, so a refund whose
+  /// answer was lost is replayed by the server, never made twice.
+  final String key;
+  final String version;
+}
+
 class _Attempt {
   _Attempt(this.status, this.key);
 
@@ -109,6 +125,8 @@ class _Attempt {
 ///   never queues anything.
 /// * Notes are append-only: they go through the outbox ([SyncEngine]) so one written offline is sent
 ///   later, exactly once (the op's idempotency key).
+/// * Refunds are online-only like status changes and never touch the outbox: one attempt (key,
+///   body, base version) is kept for "Try again" after a lost answer.
 class OrderDetailController extends ChangeNotifier {
   OrderDetailController({
     required this.orderId,
@@ -120,12 +138,18 @@ class OrderDetailController extends ChangeNotifier {
     required SyncEngine sync,
     NotesLoader? loadNotes,
     String Function()? newKey,
+    RefundSender? sendRefund,
+    StaffPermissions permissions = const StaffPermissions.unknown(),
+    PermissionsLoader? loadPermissions,
   })  : _initialStatus = initialStatus,
         _fallbackVersion = fallbackVersion,
         _load = load,
         _sendStatus = sendStatus,
         _sync = sync,
         _loadNotes = loadNotes,
+        _sendRefund = sendRefund,
+        _permissions = permissions,
+        _loadPermissions = loadPermissions,
         _newKey = newKey ?? YazanApiClient.newIdempotencyKey;
 
   final int orderId;
@@ -137,6 +161,9 @@ class OrderDetailController extends ChangeNotifier {
   final SyncEngine _sync;
   final NotesLoader? _loadNotes;
   final String Function() _newKey;
+  final RefundSender? _sendRefund;
+  final PermissionsLoader? _loadPermissions;
+  StaffPermissions _permissions;
 
   Map<String, dynamic>? _detail;
   String? _version;
@@ -152,6 +179,11 @@ class OrderDetailController extends ChangeNotifier {
   StatusConflict? _conflict;
   StatusResult? _lastResult;
   String _lastMessage = '';
+  _RefundAttempt? _refund;
+  bool _refunding = false;
+  RefundResult? _refundResult;
+  String _refundMessage = '';
+  bool _refundWasGateway = false;
 
   Map<String, dynamic>? get detail => _detail;
 
@@ -208,6 +240,16 @@ class OrderDetailController extends ChangeNotifier {
       _failed = true;
     } on Exception {
       _failed = true;
+    }
+    if (!_permissions.known) {
+      final loader = _loadPermissions;
+      if (loader != null) {
+        try {
+          _permissions = StaffPermissions.fromMe(await loader());
+        } on Exception {
+          // Refunds stay hidden until the permissions can be read.
+        }
+      }
     }
     _loading = false;
     await refreshPending();
@@ -337,6 +379,170 @@ class OrderDetailController extends ChangeNotifier {
     final attempt = _Attempt(c.mine, _newKey());
     _attempt = attempt;
     return _send(attempt);
+  }
+
+  // ---- refunds (online-only) -------------------------------------------------------------------
+
+  StaffPermissions get permissions => _permissions;
+
+  /// The server's `remaining_refund` as "12.50"; empty before the load.
+  String get remainingRefund {
+    final v = _detail?['remaining_refund'];
+    return v == null ? '' : plainPrice('$v');
+  }
+
+  String get currency {
+    final v = _detail?['currency'];
+    return v is String ? v : '';
+  }
+
+  List<OrderRefund> get refunds => OrderRefund.listFrom(_detail?['refunds']);
+
+  /// Something is still refundable on this order, as the server last said.
+  bool get hasRefundable => (refundMinor(remainingRefund) ?? 0) > 0;
+
+  /// The Refund button shows only when the server's permission map grants `orders.refund`
+  /// (unknown permissions keep it hidden) and something is left to refund. The server re-checks.
+  bool get canRefund =>
+      _sendRefund != null &&
+      _detail != null &&
+      _permissions.known &&
+      _permissions.allows('orders.refund') &&
+      hasRefundable;
+
+  /// A gateway refund is offered only when the order detail says both that the payment method can
+  /// refund and that this account may send money back (`orders.refund_gateway`).
+  bool get gatewayRefundAvailable =>
+      _detail?['gateway_refund_supported'] == true && _detail?['can_gateway_refund'] == true;
+
+  String get paymentMethod {
+    final v = _detail?['payment_method'];
+    return v == null ? '' : '$v';
+  }
+
+  bool get refunding => _refunding;
+
+  /// Outcome of the last refund, for the inline message; null after a success or a dismissal.
+  RefundResult? get refundResult => _refundResult;
+
+  /// The server's message (plain text) for [RefundResult.failed] / [RefundResult.noAccess].
+  String get refundMessage => _refundMessage;
+
+  /// True while a refund attempt waits for "Try again".
+  bool get refundPending => _refund != null;
+
+  /// Whether the last refund that went through was sent through the gateway.
+  bool get refundWasGateway => _refundWasGateway;
+
+  /// Starts a refund. Checked here first (permission, amount within the remaining refundable),
+  /// so a refusal never reaches the network. While an attempt is open no other one starts.
+  Future<RefundResult> refund(RefundDraft draft) {
+    if (!canRefund) return Future<RefundResult>.value(RefundResult.noAccess);
+    if (_refund != null || _refunding) return Future<RefundResult>.value(RefundResult.busy);
+    switch (checkRefundAmount(draft.amount, remainingRefund)) {
+      case RefundAmountCheck.ok:
+        break;
+      case RefundAmountCheck.tooMuch:
+        return Future<RefundResult>.value(RefundResult.tooMuch);
+      case RefundAmountCheck.invalid:
+      case RefundAmountCheck.zero:
+        return Future<RefundResult>.value(RefundResult.invalid);
+    }
+    if (draft.viaGateway && !gatewayRefundAvailable) {
+      return Future<RefundResult>.value(RefundResult.invalid);
+    }
+    // Like the dashboard: only a refund of the whole remaining amount can restock.
+    final amount = canonicalRefundAmount(draft.amount);
+    final full = refundMinor(amount) == refundMinor(remainingRefund);
+    final body = RefundDraft(
+      amount: amount,
+      reason: draft.reason.trim(),
+      restock: draft.restock && full,
+      viaGateway: draft.viaGateway,
+    );
+    final attempt = _RefundAttempt(body, _newKey(), version);
+    _refund = attempt;
+    return _sendRefundAttempt(attempt);
+  }
+
+  /// Resends the open refund with the same key, body and base version.
+  Future<RefundResult> retryRefund() async {
+    final open = _refund;
+    if (open == null || _refunding) return RefundResult.failed;
+    return _sendRefundAttempt(open);
+  }
+
+  /// Forgets the open refund and reads the order again, so the remaining amount shows whatever the
+  /// server really holds (a refund whose answer was lost may have gone through).
+  Future<void> dismissRefund() async {
+    _refund = null;
+    _refundResult = null;
+    _refundMessage = '';
+    await load();
+  }
+
+  Future<RefundResult> _sendRefundAttempt(_RefundAttempt attempt) async {
+    final send = _sendRefund;
+    if (send == null) return RefundResult.noAccess;
+    _refunding = true;
+    _refundResult = null;
+    _refundMessage = '';
+    _notify();
+    final result = await _refundOnce(send, attempt);
+    _refundResult = result == RefundResult.done ? null : result;
+    _refunding = false;
+    _notify();
+    return result;
+  }
+
+  Future<RefundResult> _refundOnce(RefundSender send, _RefundAttempt attempt) async {
+    try {
+      final body = await send(
+        orderId,
+        attempt.draft,
+        version: attempt.version,
+        idempotencyKey: attempt.key,
+      );
+      _refund = null;
+      _refundWasGateway = attempt.draft.viaGateway;
+      // The answer is the order detail after the refund.
+      if (body.containsKey('id')) _detail = body;
+      try {
+        await _apply(await _load(orderId));
+      } on Exception {
+        // The refund went through; the next read brings the new version.
+      }
+      return RefundResult.done;
+    } on ApiError catch (e) {
+      switch (e.action) {
+        case ErrorAction.waitAndRetrySameKey:
+          // The first delivery is still running on the server: same key, a little later.
+          return RefundResult.busy;
+        case ErrorAction.showConflict:
+          // Nothing was written. Show the order as it is now; the person starts again.
+          _refund = null;
+          try {
+            await _apply(await _load(orderId));
+          } on Exception {
+            // Keep what is shown.
+          }
+          return RefundResult.changed;
+        default:
+          _refundMessage = safeServerMessage(e.message);
+          if (_forbidden(e)) {
+            _refund = null;
+            return RefundResult.noAccess;
+          }
+          // A 5xx says nothing certain about the refund: the key stays for "Try again". A refusal
+          // (over-refund, gateway declined, nothing left) wrote nothing and would be refused again.
+          if (e.status < 500 && e.status != 0) _refund = null;
+          return RefundResult.failed;
+      }
+    } on Exception {
+      // No answer (offline, or the answer was lost). Nothing is queued: the attempt and its key
+      // wait for "Try again".
+      return RefundResult.offline;
+    }
   }
 
   // ---- notes (outbox) --------------------------------------------------------------------------

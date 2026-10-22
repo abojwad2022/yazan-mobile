@@ -3,6 +3,7 @@ import 'package:yazan_api_client/yazan_api_client.dart';
 import 'package:yazan_domain/yazan_domain.dart';
 import 'package:yazan_offline_sync/yazan_offline_sync.dart';
 
+import '../more/staff_permissions.dart';
 import 'shipping_tax_snapshot.dart';
 
 /// `GET /yazan/v1/shipping/zones` (needs `shipping.view`): every zone with its methods.
@@ -28,9 +29,12 @@ TaxRatesFetch taxRatesFetch(YazanApiClient client) =>
 /// of a [FeedStore] in the encrypted per-account database ([shippingRow], [taxRow]), each with its
 /// own "as of" time. A part that fails keeps its cached copy and sets [lastRefreshFailed].
 ///
-/// Access is per part, as on the server: a 403 (`ErrorAction.hideFeature`) on shipping sets
-/// [shippingNoAccess] and drops the cached shipping copy, and the same for tax. When both are refused
-/// [noAccess] is set, so a revoked permission does not leave settings on the phone.
+/// Access is per part, as on the server: any 403 on shipping (whatever its code, e.g.
+/// `yazan_forbidden` or `yazan_suspended`), or an `ErrorAction.hideFeature` answer, sets
+/// [shippingNoAccess] and drops the cached shipping copy, and the same for tax. A known `/me`
+/// permission map without [shippingPermission] or [taxPermission] does the same for that part (see
+/// [applyPermissions]). When both are refused [noAccess] is set, so a revoked permission does not
+/// leave settings on the phone.
 class ShippingTaxRepository extends ChangeNotifier {
   ShippingTaxRepository({
     required ZonesFetch fetchZones,
@@ -58,6 +62,10 @@ class ShippingTaxRepository extends ChangeNotifier {
   /// Row ids of the two cached parts.
   static const shippingRow = 1;
   static const taxRow = 2;
+
+  /// The RBAC slugs of the two parts.
+  static const shippingPermission = 'shipping.view';
+  static const taxPermission = 'tax.view';
 
   final ZonesFetch _fetchZones;
   final TaxFetch _fetchTax;
@@ -92,16 +100,47 @@ class ShippingTaxRepository extends ChangeNotifier {
   /// The server refused both parts to this account.
   bool get noAccess => _shippingNoAccess && _taxNoAccess;
 
+  /// A refusal that means this account may not read that part: any 403, or an answer the client
+  /// maps to hiding the feature.
+  static bool _forbidden(ApiError e) => e.status == 403 || e.action == ErrorAction.hideFeature;
+
   Future<void> _reload() async {
     try {
       for (final r in await _store.readAll()) {
         if (r['id'] == shippingRow) _shipping = ShippingSnapshot.fromJson(r);
         if (r['id'] == taxRow) _tax = TaxSnapshot.fromJson(r);
       }
-    } on Exception {
+    } catch (_) {
       // An unreadable cache shows as empty; the next refresh fills it.
     }
     _notify();
+  }
+
+  /// Applies the `/me` permission map: when it is known, each part it does not allow is refused here
+  /// as on a 403 (its cached copy dropped from memory and the phone). An unknown map changes
+  /// nothing; the server stays the judge.
+  Future<void> applyPermissions(StaffPermissions permissions) async {
+    if (!permissions.known) return;
+    final noShipping = !permissions.allows(shippingPermission);
+    final noTax = !permissions.allows(taxPermission);
+    if (!noShipping && !noTax) return;
+    await _ready;
+    if (_disposed) return;
+    if (noShipping) await _forbidShipping();
+    if (noTax) await _forbidTax();
+    _notify();
+  }
+
+  Future<void> _forbidShipping() async {
+    _shippingNoAccess = true;
+    _shipping = null;
+    await _drop(shippingRow);
+  }
+
+  Future<void> _forbidTax() async {
+    _taxNoAccess = true;
+    _tax = null;
+    await _drop(taxRow);
   }
 
   Future<void> refresh() async {
@@ -132,10 +171,8 @@ class ShippingTaxRepository extends ChangeNotifier {
       await _save(shippingRow, next.toJson());
       return false;
     } on ApiError catch (e) {
-      if (e.action != ErrorAction.hideFeature) return true;
-      _shippingNoAccess = true;
-      _shipping = null;
-      await _drop(shippingRow);
+      if (!_forbidden(e)) return true;
+      await _forbidShipping();
       return false;
     } on Exception {
       return true;
@@ -159,10 +196,8 @@ class ShippingTaxRepository extends ChangeNotifier {
       await _save(taxRow, next.toJson());
       return false;
     } on ApiError catch (e) {
-      if (e.action != ErrorAction.hideFeature) return true;
-      _taxNoAccess = true;
-      _tax = null;
-      await _drop(taxRow);
+      if (!_forbidden(e)) return true;
+      await _forbidTax();
       return false;
     } on Exception {
       return true;

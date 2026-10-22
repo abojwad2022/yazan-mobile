@@ -40,6 +40,25 @@ act=$(find android/app/src/main \( -name 'MainActivity.kt' -o -name 'MainActivit
 perl -pi -e 's/\bio\.flutter\.embedding\.android\.FlutterActivity\b/io.flutter.embedding.android.FlutterFragmentActivity/; s/:\s*FlutterActivity\(\)/: FlutterFragmentActivity()/; s/extends FlutterActivity\b/extends FlutterFragmentActivity/' "$act"
 grep -q 'FlutterFragmentActivity' "$act" \
   || { echo "scaffold: could not make $act a FlutterFragmentActivity (flutter create changed its template?)" >&2; exit 1; }
+# Admin app only: Android FLAG_SECURE on the whole window, so the OS blanks the task-switcher thumbnail
+# and refuses screenshots / screen recording of customer and order data. Patches the Kotlin template's
+# body-less `class MainActivity : FlutterFragmentActivity()` (rewritten just above). Idempotent (skipped
+# once FLAG_SECURE is there); fails loudly if the template changed. iOS has no equivalent without native
+# code; see the note in lib/src/security/app_lock_scope.dart.
+if [ "$pkg" = "yazan_admin" ]; then
+  if ! grep -q 'FLAG_SECURE' "$act"; then
+    case "$act" in
+      *.kt) ;;
+      *) echo "scaffold: FLAG_SECURE patch expects a Kotlin MainActivity, found $act" >&2; exit 1 ;;
+    esac
+    perl -0pi -e 's/^(import io\.flutter\.embedding\.android\.FlutterFragmentActivity)[ \t]*\r?$/$1\nimport android.os.Bundle\nimport android.view.WindowManager/m; s/^(class MainActivity\s*:\s*FlutterFragmentActivity\(\))[ \t]*\r?$/$1 {\n    override fun onCreate(savedInstanceState: Bundle?) {\n        super.onCreate(savedInstanceState)\n        window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)\n    }\n}/m' "$act"
+  fi
+  grep -q '^import android\.os\.Bundle' "$act" \
+    && grep -q '^import android\.view\.WindowManager' "$act" \
+    && grep -q 'override fun onCreate(savedInstanceState: Bundle?)' "$act" \
+    && grep -q 'window\.setFlags(WindowManager\.LayoutParams\.FLAG_SECURE, WindowManager\.LayoutParams\.FLAG_SECURE)' "$act" \
+    || { echo "scaffold: could not set FLAG_SECURE in $act (flutter create changed its template?)" >&2; exit 1; }
+fi
 ip=ios/Runner/Info.plist
 grep -q 'NSFaceIDUsageDescription' "$ip" || perl -0pi -e 's/<\/dict>(\s*<\/plist>)/\t<key>NSFaceIDUsageDescription<\/key>\n\t<string>Unlock the app with Face ID.<\/string>\n<\/dict>$1/' "$ip"
 grep -q 'NSFaceIDUsageDescription' "$ip" \

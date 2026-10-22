@@ -776,5 +776,84 @@
   },
   "taxRateShipping": "Also on shipping",
   "taxRateCompound": "Compound",
-  "taxRateManaged": "Automatic"
+  "taxRateManaged": "Automatic",
+  "refundsTitle": "Refunds",
+  "refundStart": "Refund",
+  "refundOnlineOnly": "Refunds need a connection and are never saved on the phone.",
+  "refundFull": "Fully refunded",
+  "refundRemaining": "Up to {amount} can still be refunded.",
+  "@refundRemaining": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "refundSheetTitle": "Refund this order",
+  "refundAmountLabel": "Amount",
+  "refundReasonLabel": "Reason (optional)",
+  "refundRestock": "Restock the refunded items",
+  "refundRestockHelp": "Returns the ring to inventory.",
+  "refundRestockPartial": "Only a refund of the full remaining {amount} can restock. For a partial refund, adjust the stock yourself.",
+  "@refundRestockPartial": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "refundViaGateway": "Refund through the payment gateway",
+  "refundViaGatewayHelp": "Sends real money back to the customer. This cannot be undone.",
+  "refundManualNote": "This records a manual refund: no money is moved. Settle it with the customer yourself.",
+  "refundContinue": "Continue",
+  "refundAmountInvalid": "Enter an amount such as 12.50.",
+  "refundAmountZero": "Enter an amount greater than zero.",
+  "refundAmountTooMuch": "The most you can refund on this order is {amount}.",
+  "@refundAmountTooMuch": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "refundMethodFallback": "the payment method",
+  "refundConfirmManual": "Record a manual refund of {amount}? No money is moved — you settle it yourself.",
+  "@refundConfirmManual": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "refundConfirmGateway": "Send {amount} back to the customer through {method}? This moves real money and cannot be undone.",
+  "@refundConfirmGateway": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "method": {
+        "type": "String"
+      }
+    }
+  },
+  "refundConfirmGateway2Title": "Refund {amount} through the payment gateway?",
+  "@refundConfirmGateway2Title": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "refundConfirmGateway2Body": "This sends money back to the customer now and cannot be undone from here.",
+  "refundConfirmAction": "Refund",
+  "refundNow": "Refund now",
+  "securityReasonRefund": "Confirm it is you to refund this order",
+  "refundDoneManual": "Manual refund recorded.",
+  "refundDoneGateway": "Refund sent through the payment gateway.",
+  "refundOffline": "No answer from the store, so the refund may not have been made. Nothing was saved on the phone. Try again sends the same request, so the order is never refunded twice.",
+  "refundBusy": "The store is still processing this refund. Try again in a moment.",
+  "refundChanged": "This order changed since you opened it, so nothing was refunded. Check the amounts and start the refund again.",
+  "refundNoPermission": "You do not have permission to refund this order.",
+  "refundFailed": "The refund could not be made.",
+  "refundDiscard": "Discard"
 }

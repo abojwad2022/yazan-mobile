@@ -36,6 +36,9 @@ final FeedStore catalog  = storage.feed(SqlFeedStore.guestAccountId, 'products')
 
 final engine = SyncEngine(store: outbox, send: sendOp);
 await pullFeed(fetch: fetchOrdersPage, store: orders);
+// Same pull, plus whether it reached the feed's end (false when cut off by maxPages):
+final r = await pullFeedResult(fetch: fetchCatalogPage, store: catalog, replaceOnFirstSuccess: true);
+if (r.complete) { /* only now stamp a "last synced" time */ }
 await engine.run(session.userId);
 
 // Sign-out or revoked access: queue, cached rows and cursors of that account, atomically.

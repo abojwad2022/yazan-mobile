@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:yazan_admin/l10n/app_localizations.dart';
 import 'package:yazan_admin/src/security/app_lock_controller.dart';
 import 'package:yazan_admin/src/security/app_lock_scope.dart';
+import 'package:yazan_admin/src/security/biometric_gate.dart';
 import 'package:yazan_admin/src/security/lock_settings_store.dart';
 import 'package:yazan_admin/src/security/require_unlock_tile.dart';
 
@@ -151,6 +152,107 @@ void main() {
     expect(await lock.unlock('x'), isTrue);
     expect(lock.locked, isFalse);
     expect(lock.noticePending, isTrue);
+  });
+
+  group('capability check errors fail closed', () {
+    final failedLine = find.byKey(const ValueKey('lock-failed'));
+    final notice = find.byKey(const ValueKey('lock-notice'));
+
+    testWidgets('at cold start: stays locked with Unlock and "could not confirm", no notice',
+        (t) async {
+      gate.availability = GateAvailability.error;
+      await start(t);
+      expect(lock.locked, isTrue);
+      expect(lock.available, isTrue, reason: 'an error is not "nothing enrolled"');
+      expect(cover, findsOneWidget);
+      expect(unlockButton, findsOneWidget);
+      expect(failedLine, findsOneWidget);
+      expect(notice, findsNothing);
+      expect(gate.authCalls, 0);
+      expect(gate.checkCalls, 2, reason: 'init, then the automatic prompt re-checks once');
+      await t.pump();
+      expect(gate.checkCalls, 2, reason: 'no re-check loop while the error stands');
+
+      // Retrying while it still errors keeps it locked.
+      await t.tap(unlockButton);
+      await t.pump();
+      expect(lock.locked, isTrue);
+      expect(cover, findsOneWidget);
+      expect(gate.authCalls, 0);
+
+      // Once the phone answers again, Unlock raises the prompt as usual.
+      gate.availability = GateAvailability.available;
+      gate.fallback = true;
+      await t.tap(unlockButton);
+      await t.pump();
+      expect(gate.authCalls, 1);
+      expect(cover, findsNothing);
+      expect(lock.locked, isFalse);
+    });
+
+    testWidgets('a throwing check is an error too: unlock refuses, no notice', (t) async {
+      gate.throwOnCheck = true;
+      await start(t, active: false);
+      expect(lock.locked, isTrue);
+      expect(await lock.unlock('x'), isFalse);
+      expect(lock.locked, isTrue);
+      expect(lock.lastFailed, isTrue);
+      expect(lock.noticePending, isFalse);
+      expect(gate.authCalls, 0);
+    });
+
+    testWidgets('after a long absence: locks and stays locked', (t) async {
+      gate.fallback = true;
+      await start(t);
+      gate.authCalls = 0;
+      gate.availability = GateAvailability.error;
+      await away(t, const Duration(seconds: 61));
+      expect(lock.locked, isTrue);
+      expect(cover, findsOneWidget);
+      expect(unlockButton, findsOneWidget);
+      expect(failedLine, findsOneWidget);
+      expect(notice, findsNothing);
+      expect(gate.authCalls, 0);
+    });
+
+    testWidgets('confirmSensitive refuses without prompting', (t) async {
+      gate.fallback = true;
+      await start(t);
+      gate.authCalls = 0;
+      gate.availability = GateAvailability.error;
+      await t.tap(find.byKey(const ValueKey('refund')));
+      await t.pump();
+      expect(confirmed, isFalse);
+      expect(gate.authCalls, 0);
+      expect(cover, findsNothing, reason: 'a refused action does not lock the app');
+
+      gate.availability = GateAvailability.available;
+      gate.throwOnCheck = true;
+      confirmed = null;
+      await t.tap(find.byKey(const ValueKey('refund')));
+      await t.pump();
+      expect(confirmed, isFalse);
+      expect(gate.authCalls, 0);
+    });
+
+    testWidgets('turning the lock on is refused, the phone is not marked unable', (t) async {
+      store = MemoryLockSettingsStore(false);
+      await start(t);
+      gate.availability = GateAvailability.error;
+      expect(await lock.setEnabled(true, reason: 'x'), isFalse);
+      expect(lock.enabled, isFalse);
+      expect(lock.available, isTrue);
+      expect(await store.read(), isFalse);
+    });
+
+    testWidgets('stored off is still respected', (t) async {
+      store = MemoryLockSettingsStore(false);
+      gate.availability = GateAvailability.error;
+      await start(t);
+      expect(lock.locked, isFalse);
+      expect(lock.shouldGuard, isFalse);
+      expect(notice, findsNothing);
+    });
   });
 
   testWidgets('inactive scope (signed out) neither covers nor prompts', (t) async {

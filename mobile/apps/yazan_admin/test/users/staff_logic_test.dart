@@ -33,6 +33,23 @@ StaffDetailController _controller(FakeStaffServer s, {List<String> slugs = const
   );
 }
 
+/// A store whose writes fail with [error] (an [Error], not an [Exception]) while it is set.
+class _BrokenStore extends MemoryFeedStore {
+  Object? error;
+
+  @override
+  Future<void> apply({
+    required List<Map<String, dynamic>> upserts,
+    required List<int> deletedIds,
+    required String cursor,
+    required bool initial,
+  }) async {
+    final e = error;
+    if (e != null) throw e;
+    return super.apply(upserts: upserts, deletedIds: deletedIds, cursor: cursor, initial: initial);
+  }
+}
+
 void main() {
   test('the registry has Staff behind users.view', () {
     expect(moreEntries.firstWhere((e) => e.key == 'staff').permission, 'users.view');
@@ -106,6 +123,85 @@ void main() {
       await forbidden.refresh();
       expect(forbidden.noAccess, isTrue);
       expect(forbidden.all, isEmpty);
+    });
+
+    test('no access purges the store even when nothing was read into memory', () async {
+      final store = MemoryFeedStore();
+      final repo = _repo(store: store, permissions: ['orders.view']);
+      await repo.ready;
+      expect(repo.all, isEmpty);
+      // Rows the reload never saw (written after it, or unreadable then) are on the phone.
+      await store.apply(upserts: staffRows, deletedIds: const [], cursor: '', initial: true);
+      await store.writeMeta('fetched_at', '2026-10-22T08:30:00.000Z');
+
+      await repo.refresh();
+      expect(repo.noAccess, isTrue);
+      expect(store.rows, isEmpty);
+      expect(store.meta, isEmpty);
+    });
+
+    test('a row with a malformed id is skipped; the rest of the page is kept', () async {
+      final store = MemoryFeedStore();
+      var calls = 0;
+      final repo = StaffRepository(
+        store: store,
+        fetch: (page) async {
+          calls++;
+          return staffPage([
+            {...staffRows[0], 'id': 'five'},
+            staffRows[1],
+            {...staffRows[2], 'id': null},
+          ]);
+        },
+      );
+      await repo.refresh();
+      expect(repo.loading, isFalse);
+      expect(repo.lastRefreshFailed, isFalse);
+      expect(repo.all.map((m) => m.id), [6]);
+      expect(store.rows.keys, [6]);
+
+      await repo.refresh();
+      expect(calls, 2);
+    });
+
+    test('a store write that throws an Error does not wedge refresh', () async {
+      final store = _BrokenStore()..error = TypeError();
+      var calls = 0;
+      final repo = StaffRepository(
+        store: store,
+        fetch: (page) async {
+          calls++;
+          return staffPage(staffRows);
+        },
+      );
+      await repo.refresh();
+      expect(repo.loading, isFalse);
+      expect(repo.loaded, isTrue);
+
+      store.error = null;
+      await repo.refresh();
+      expect(calls, 2);
+      expect(repo.loading, isFalse);
+      expect(store.rows, hasLength(3));
+    });
+
+    test('a fetch that throws an Error is a failed refresh, not a stuck one', () async {
+      var calls = 0;
+      final repo = StaffRepository(
+        fetch: (page) async {
+          calls++;
+          if (calls == 1) throw StateError('odd body');
+          return staffPage(staffRows);
+        },
+      );
+      await repo.refresh();
+      expect(repo.loading, isFalse);
+      expect(repo.lastRefreshFailed, isTrue);
+
+      await repo.refresh();
+      expect(calls, 2);
+      expect(repo.lastRefreshFailed, isFalse);
+      expect(repo.all, hasLength(3));
     });
 
     test('force-logout is offered only when the map lists it', () async {

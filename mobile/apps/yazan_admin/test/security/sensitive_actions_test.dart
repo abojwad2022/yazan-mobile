@@ -9,6 +9,7 @@ import 'package:yazan_admin/src/products/product_permissions.dart';
 import 'package:yazan_admin/src/products/product_summary.dart';
 import 'package:yazan_admin/src/security/app_lock_controller.dart';
 import 'package:yazan_admin/src/security/app_lock_scope.dart';
+import 'package:yazan_admin/src/security/biometric_gate.dart';
 import 'package:yazan_admin/src/security/lock_settings_store.dart';
 import 'package:yazan_admin/src/users/staff_detail_page.dart';
 import 'package:yazan_admin/src/users/staff_member.dart';
@@ -207,6 +208,21 @@ void main() {
       await _changePrice(t);
       expect(gate.authCalls, 0);
       expect(server.writes, hasLength(1));
+    });
+
+    testWidgets('a capability check that errors refuses the change without asking', (t) async {
+      _tallView(t);
+      final gate = FakeBiometricGate(availability: GateAvailability.error);
+      final server = FakeProductServer();
+      await t.pumpWidget(_host(await _unlockedLock(gate), _productPage(server)));
+      await _frames(t);
+      expect(find.byKey(const ValueKey('lock-notice')), findsNothing,
+          reason: 'an error is not "this phone cannot lock"');
+
+      await _changePrice(t);
+      expect(gate.authCalls, 0);
+      expect(server.writes, isEmpty);
+      expect(find.text('120.00'), findsOneWidget);
     });
   });
 

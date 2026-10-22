@@ -54,7 +54,12 @@ class OrdersRepository extends ChangeNotifier {
   bool get loaded => _loaded;
   bool get lastRefreshFailed => _failed;
   ApiError? get lastError => _error;
-  bool get noAccess => _error?.action == ErrorAction.hideFeature;
+  /// Any 403 counts, whatever its code (`yazan_forbidden`, `yazan_suspended`, ...): the server no
+  /// longer shows this feed to the account, so the cached orders must not stay on the phone.
+  bool get noAccess {
+    final e = _error;
+    return e != null && (e.status == 403 || e.action == ErrorAction.hideFeature);
+  }
 
   /// Newest first (created date, then id).
   List<OrderSummary> get orders {

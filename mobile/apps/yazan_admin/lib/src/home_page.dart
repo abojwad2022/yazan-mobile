@@ -214,6 +214,8 @@ class _HomePageState extends State<HomePage> {
           accountId: _accountId,
           load: orderLoader(widget.client),
           sendStatus: statusSender(widget.client),
+          sendRefund: refundSender(widget.client),
+          loadPermissions: permissionsLoader(widget.client),
           sync: _sync,
         ),
       ),

@@ -17,7 +17,7 @@ Widget _page(ShippingTaxRepository repo, {Locale locale = const Locale('en')}) =
     dashboardHost(locale, ShippingTaxPage(repository: repo));
 
 Finder _in(String key, Finder what) =>
-    find.descendant(of: find.byKey(ValueKey(key)), matching: what);
+    find.descendant(of: find.byKey(ValueKey(key)), matching: what, matchRoot: true);
 
 /// Lets the fake answers arrive. The page shows a spinner until then, so no pumpAndSettle.
 Future<void> _load(WidgetTester tester) async {

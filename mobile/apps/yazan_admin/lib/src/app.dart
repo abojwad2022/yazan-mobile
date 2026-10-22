@@ -25,6 +25,7 @@ class YazanApp extends StatefulWidget {
     this.accounts,
     this.events,
     this.lock,
+    this.webSignIn,
   });
 
   final YazanApiClient client;
@@ -34,6 +35,10 @@ class YazanApp extends StatefulWidget {
 
   /// The app lock (see `security/`); null runs without one, which is what most tests do.
   final AppLockController? lock;
+
+  /// The website sign-in ("Sign in with the website"). Tests inject one with a fake browser; null =
+  /// the system auth browser on the site [client] talks to.
+  final WebSignIn? webSignIn;
 
   @override
   State<YazanApp> createState() => _YazanAppState();
@@ -214,6 +219,7 @@ class _YazanAppState extends State<YazanApp> {
           ),
         false => LoginPage(
             client: widget.client,
+            webSignIn: widget.webSignIn,
             onSignedIn: _onSignedIn,
           ),
       },

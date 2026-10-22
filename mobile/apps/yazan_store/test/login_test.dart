@@ -72,10 +72,15 @@ void main() {
 
     await tester.tap(find.byTooltip('Account'));
     await tester.pumpAndSettle();
-    expect(find.widgetWithText(FilledButton, 'Sign in'), findsOneWidget);
-    expect(find.text('Password'), findsOneWidget);
+    // The website's own sign-in page leads; the in-app email form is folded under it.
+    expect(find.widgetWithText(FilledButton, 'Sign in or create account'), findsOneWidget);
+    expect(find.text('Password'), findsNothing);
     expect(find.text('Signing in is optional. You can browse and order without an account.'),
         findsOneWidget);
+    await tester.tap(find.text('Sign in with email here'));
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(FilledButton, 'Sign in'), findsOneWidget);
+    expect(find.text('Password'), findsOneWidget);
 
     // Back returns to the shop; nothing was required.
     await tester.pageBack();

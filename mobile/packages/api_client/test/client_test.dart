@@ -548,4 +548,115 @@ void main() {
       expect(await store.read(), isNull);
     });
   });
+
+  group('login platform', () {
+    test('android and ios are sent; anything else (the old unknown default) is left out', () async {
+      final store = MemoryTokenStore();
+      final a = FakeAdapter((o) => (200, pair('yzm_1', 'yzr_1'), {}));
+      final c = make(a, store);
+      await c.login(login: 'a', password: 'b', platform: 'ios');
+      await c.login(login: 'a', password: 'b');
+      await c.login(login: 'a', password: 'b', platform: 'windows');
+      final sent = [for (final o in a.seen) jsonDecode(o.data as String) as Map];
+      expect(sent[0]['platform'], 'ios');
+      expect(sent[1].containsKey('platform'), isFalse);
+      expect(sent[2].containsKey('platform'), isFalse);
+    });
+  });
+
+  group('exchangeAppCode', () {
+    test('posts the code and verifier to auth/exchange and stores the session like login', () async {
+      final store = MemoryTokenStore();
+      final a = FakeAdapter((o) => (
+            200,
+            {
+              ...pair('yzm_w', 'yzr_w'),
+              'user': {'id': 9, 'name': 'Amal', 'email': 'a@example.test', 'scope': 'store'},
+            },
+            {},
+          ));
+      final r = await make(a, store).exchangeAppCode(
+          code: 'one-time-code', codeVerifier: 'v' * 43, platform: 'android', deviceName: 'Pixel');
+      expect(r.session!.accessToken, 'yzm_w');
+      expect(r.userId, 9);
+      expect(r.user!.name, 'Amal');
+      final stored = (await store.read())!;
+      expect(stored.refreshToken, 'yzr_w');
+      expect(stored.userId, 9);
+
+      final o = a.seen.single;
+      expect(o.method, 'POST');
+      expect(o.path, endsWith('/yazan-mobile/v1/auth/exchange'));
+      expect(o.headers.containsKey('Authorization'), isFalse);
+      final sent = jsonDecode(o.data as String) as Map;
+      expect(sent['code'], 'one-time-code');
+      expect(sent['code_verifier'], 'v' * 43);
+      expect(sent['device_id'], 'dev-1');
+      expect(sent['platform'], 'android');
+      expect(sent['device_name'], 'Pixel');
+    });
+
+    test('leaves out an unknown platform and a missing device name', () async {
+      final store = MemoryTokenStore();
+      final a = FakeAdapter((o) => (200, pair('yzm_w', 'yzr_w'), {}));
+      await make(a, store).exchangeAppCode(code: 'c', codeVerifier: 'v', platform: 'linux');
+      final sent = jsonDecode(a.seen.single.data as String) as Map;
+      expect(sent.containsKey('platform'), isFalse);
+      expect(sent.containsKey('device_name'), isFalse);
+      expect(sent.keys.toSet(), {'client', 'code', 'code_verifier', 'device_id'});
+      expect(sent['client'], 'store');
+    });
+
+    test('an expired or used code is a 400 bad_code, stores nothing and does not refresh', () async {
+      final store = MemoryTokenStore();
+      final a = FakeAdapter((o) => (
+            400,
+            {'code': 'yazan_mobile_bad_code', 'message': 'x', 'data': {'status': 400}},
+            {},
+          ));
+      try {
+        await make(a, store).exchangeAppCode(code: 'c', codeVerifier: 'v');
+        fail('should throw');
+      } on ApiError catch (e) {
+        expect(e.status, 400);
+        expect(e.code, 'yazan_mobile_bad_code');
+      }
+      expect(a.seen.single.path, endsWith('/auth/exchange'));
+      expect(await store.read(), isNull);
+    });
+
+    test('a new web sign-in replaces an older stored session', () async {
+      final store = MemoryTokenStore();
+      await store.write(Session.fromJson(pair('yzm_old', 'yzr_old')));
+      final a = FakeAdapter((o) => (200, pair('yzm_new', 'yzr_new'), {}));
+      await make(a, store).exchangeAppCode(code: 'c', codeVerifier: 'v');
+      expect((await store.read())!.accessToken, 'yzm_new');
+    });
+
+    test('the Admin app exchanges as client admin and gets its admin session', () async {
+      final store = MemoryTokenStore();
+      final a = FakeAdapter((o) => (
+            200,
+            {
+              ...pair('yzm_a', 'yzr_a'),
+              'user': {'id': 3, 'name': 'Staff', 'email': 's@example.test', 'scope': 'admin'},
+            },
+            {},
+          ));
+      final c = YazanApiClient(
+        baseUrl: 'https://example.test',
+        scope: AppScope.admin,
+        deviceId: 'dev-2',
+        tokens: store,
+        dio: Dio()..httpClientAdapter = a,
+      );
+      final r = await c.exchangeAppCode(code: 'c', codeVerifier: 'v', platform: 'ios');
+      expect(r.user!.scope, 'admin');
+      expect((await store.read())!.accessToken, 'yzm_a');
+      final sent = jsonDecode(a.seen.single.data as String) as Map;
+      expect(sent['client'], 'admin');
+      expect(sent['device_id'], 'dev-2');
+      expect(sent['platform'], 'ios');
+    });
+  });
 }

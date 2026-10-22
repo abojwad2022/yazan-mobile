@@ -12,6 +12,9 @@ class ScriptedClient extends YazanApiClient {
         );
 
   ApiError? loginError;
+
+  /// Thrown by [login] instead of an answer (a network failure, a timeout).
+  Object? loginException;
   bool loggedOut = false;
   final List<String> logins = [];
 
@@ -23,6 +26,8 @@ class ScriptedClient extends YazanApiClient {
     String platform = 'unknown',
   }) async {
     logins.add(login);
+    final failure = loginException;
+    if (failure != null) throw failure;
     final error = loginError;
     if (error != null) throw error;
     final session = Session.fromJson(
@@ -31,26 +36,23 @@ class ScriptedClient extends YazanApiClient {
     return LoginResult.session(session);
   }
 
-  ApiError? socialError;
+  ApiError? exchangeError;
 
-  /// `provider:idToken:nonce` for every social sign-in.
-  final List<String> socialLogins = [];
+  /// `code:codeVerifier:platform` for every website sign-in code swapped for a session.
+  final List<String> exchanges = [];
 
   @override
-  Future<LoginResult> socialLogin({
-    required String provider,
-    required String idToken,
-    String? nonce,
-    String? firstName,
-    String? lastName,
+  Future<LoginResult> exchangeAppCode({
+    required String code,
+    required String codeVerifier,
     String? deviceName,
     String? platform,
   }) async {
-    socialLogins.add('$provider:$idToken:${nonce ?? ''}');
-    final error = socialError;
+    exchanges.add('$code:$codeVerifier:${platform ?? ''}');
+    final error = exchangeError;
     if (error != null) throw error;
     final session = Session.fromJson(
-        {'access_token': 'yzm_s', 'refresh_token': 'yzr_s', 'expires_in': 900});
+        {'access_token': 'yzm_w', 'refresh_token': 'yzr_w', 'expires_in': 900});
     await tokens.write(session);
     return LoginResult.session(session);
   }

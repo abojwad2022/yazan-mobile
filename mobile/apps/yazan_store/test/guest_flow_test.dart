@@ -72,6 +72,9 @@ Future<void> _tapAddToCart(WidgetTester tester) async {
 
 /// Signs in through the form that is on screen (the customer chose to).
 Future<void> _fillSignIn(WidgetTester tester) async {
+  // The website sign-in leads; the in-app email form opens under it.
+  await tester.tap(find.text('Sign in with email here'));
+  await tester.pumpAndSettle();
   await tester.enterText(find.byType(TextField).at(0), 'noor@yazan.test');
   await tester.enterText(find.byType(TextField).at(1), 'secret-password');
   await tester.tap(find.widgetWithText(FilledButton, 'Sign in'));

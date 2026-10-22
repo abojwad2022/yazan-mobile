@@ -188,10 +188,12 @@
   "scanTypeInstead": "Type the serial instead",
   "scanTorchOn": "Turn on the light",
   "scanTorchOff": "Turn off the light",
-  "continueWithGoogle": "Continue with Google",
-  "continueWithApple": "Continue with Apple",
-  "socialOr": "or",
-  "socialUnavailable": "Signing in this way is not available yet. Please use your email and password.",
-  "socialFailed": "That sign-in did not work. Please try again or use your email and password.",
-  "socialEmailNeeded": "We need a verified email address from that account to sign you in. Please use your email and password."
+  "webSignIn": "Sign in or create account",
+  "webSignInHint": "Opens the YAZAN website in a secure window, where you can sign in the way you usually do or create a new account.",
+  "signInWithEmailHere": "Sign in with email here",
+  "webSignInExpired": "Sign-in expired, please try again.",
+  "webSignInFailed": "Sign-in did not finish. Please try again.",
+  "websiteNotUpdated": "The website is not updated for the app yet. Please try again later.",
+  "signInConnection": "Could not reach the website. Check your connection and try again.",
+  "signInUnexpected": "Something went wrong. Please try again."
 }

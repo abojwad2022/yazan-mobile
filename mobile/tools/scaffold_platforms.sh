@@ -59,6 +59,21 @@ if [ "$pkg" = "yazan_admin" ]; then
     && grep -q 'window\.setFlags(WindowManager\.LayoutParams\.FLAG_SECURE, WindowManager\.LayoutParams\.FLAG_SECURE)' "$act" \
     || { echo "scaffold: could not set FLAG_SECURE in $act (flutter create changed its template?)" >&2; exit 1; }
 fi
+# Sign-in through the website (flutter_web_auth_2 5.x, both apps): the site redirects to
+# com.yazanus.<short>://auth?code=...; on Android the package's CallbackActivity must own THIS app's scheme
+# only (com.yazanus.store in the Store app, com.yazanus.admin in the Admin app). Manifest entry as in the
+# package README; its optional intent-filter label is left out so the display-name rewrite below cannot
+# touch it. iOS needs no Info.plist URL type: the scheme is handed to ASWebAuthenticationSession.
+# Inside <application>, idempotent, fails loudly.
+export AUTH_SCHEME="com.yazanus.$short"
+if ! grep -q 'com.linusu.flutter_web_auth_2.CallbackActivity' "$m"; then
+  perl -0pi -e 's#(\n?[ \t]*</application>)#\n        <activity\n            android:name="com.linusu.flutter_web_auth_2.CallbackActivity"\n            android:exported="true"\n            android:taskAffinity="">\n            <intent-filter>\n                <action android:name="android.intent.action.VIEW" />\n                <category android:name="android.intent.category.DEFAULT" />\n                <category android:name="android.intent.category.BROWSABLE" />\n                <data android:scheme="$ENV{AUTH_SCHEME}" />\n            </intent-filter>\n        </activity>$1#' "$m"
+fi
+perl -0ne 'my $s = quotemeta $ENV{AUTH_SCHEME}; my $n = () = /flutter_web_auth_2\.CallbackActivity/g; my $schemes = () = /<data android:scheme="com\.yazanus\.[a-z]+"/g; exit((/<application\b.*<activity\s+android:name="com\.linusu\.flutter_web_auth_2\.CallbackActivity"\s+android:exported="true"[^>]*>\s*<intent-filter>.*?<action android:name="android\.intent\.action\.VIEW" \/>.*?<category android:name="android\.intent\.category\.BROWSABLE" \/>.*?<data android:scheme="$s" \/>.*?<\/intent-filter>\s*<\/activity>.*<\/application>/s && $n == 1 && $schemes == 1) ? 0 : 1)' "$m" \
+  || { echo "scaffold: could not add the flutter_web_auth_2 CallbackActivity for $AUTH_SCHEME (and no other app scheme) inside <application> in $m" >&2; exit 1; }
+# The package README advises taskAffinity="" on every exported Activity; Flutter's MainActivity template has it.
+perl -0ne 'exit(/<activity\b[^>]*android:name="\.MainActivity"[^>]*android:taskAffinity=""/s ? 0 : 1)' "$m" \
+  || echo "scaffold: warning: MainActivity has no android:taskAffinity=\"\" in $m (flutter_web_auth_2 advises it)" >&2
 ip=ios/Runner/Info.plist
 grep -q 'NSFaceIDUsageDescription' "$ip" || perl -0pi -e 's/<\/dict>(\s*<\/plist>)/\t<key>NSFaceIDUsageDescription<\/key>\n\t<string>Unlock the app with Face ID.<\/string>\n<\/dict>$1/' "$ip"
 grep -q 'NSFaceIDUsageDescription' "$ip" \

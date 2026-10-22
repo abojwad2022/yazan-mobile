@@ -14,7 +14,6 @@ import 'catalogue/category_repository.dart';
 import 'home_page.dart';
 import 'login_page.dart';
 import 'session_scope.dart';
-import 'social/social_sign_in.dart';
 import 'storage/local_data.dart';
 import 'storage/storage_notice.dart';
 import 'wishlist/wishlist_api.dart';
@@ -37,8 +36,7 @@ class YazanApp extends StatefulWidget {
     this.wishlistApi,
     this.wishlistMirror,
     this.localData,
-    this.socialConfig,
-    this.socialTokens,
+    this.webSignIn,
   });
 
   final YazanApiClient client;
@@ -68,12 +66,9 @@ class YazanApp extends StatefulWidget {
   /// is what tests get.
   final StoreLocalData? localData;
 
-  /// Which "Continue with Google / Apple" buttons the sign-in screen shows. Null = the build's
-  /// `--dart-define` flags ([SocialSignInConfig.fromEnvironment]); with none set, no buttons.
-  final SocialSignInConfig? socialConfig;
-
-  /// Where the provider ID tokens come from (tests inject a fake). Null = no provider wired yet.
-  final SocialTokenSource? socialTokens;
+  /// The website sign-in ("Sign in or create account"). Tests inject one with a fake browser; null =
+  /// the system auth browser on the site [client] talks to.
+  final WebSignIn? webSignIn;
 
   @override
   State<YazanApp> createState() => _YazanAppState();
@@ -86,8 +81,6 @@ class _YazanAppState extends State<YazanApp> {
   late final CartController _cart =
       CartController(widget.storeApi ?? StoreApi(widget.client.raw, fetchTokenFirst: true));
   late final AccountApi _account = widget.accountApi ?? ClientAccountApi(widget.client);
-  late final SocialSignInConfig _social =
-      widget.socialConfig ?? SocialSignInConfig.fromEnvironment();
   late final CatalogueRepository? _repository = _buildRepository();
   late final CategoryRepository? _categories = _buildCategories();
   late final WishlistController _wishlist = WishlistController(
@@ -187,8 +180,7 @@ class _YazanAppState extends State<YazanApp> {
       MaterialPageRoute<bool>(
         builder: (routeContext) => LoginPage(
           client: widget.client,
-          social: _social,
-          socialTokens: widget.socialTokens ?? const UnconfiguredSocialTokenSource(),
+          webSignIn: widget.webSignIn,
           onSignedIn: () {
             _signedInNow();
             Navigator.of(routeContext).pop(true);

@@ -14,6 +14,9 @@ dependencies:
   intl: any
   flutter_secure_storage: ^9.2.2
   local_auth: ^2.3.0
+  # "Sign in with the website (dashboard login)" (lib/src/web_sign_in/web_sign_in.dart; the flow itself
+  # is WebSignIn in yazan_api_client). Same version as the Store app; see the note there.
+  flutter_web_auth_2: ^5.1.0
   yazan_domain:
   yazan_api_client:
   yazan_design_system:

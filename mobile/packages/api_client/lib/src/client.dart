@@ -78,6 +78,11 @@ class YazanApiClient {
 
   // ---- sign-in -------------------------------------------------------------
 
+  /// Password sign-in (`POST /auth/login`).
+  ///
+  /// [platform] is sent only when it is `android` or `ios`: the route's `platform` argument is an
+  /// enum of those two, and WordPress refuses the whole request (400 `rest_invalid_param`) for any
+  /// other value, the old default `unknown` included.
   Future<LoginResult> login({
     required String login,
     required String password,
@@ -93,12 +98,52 @@ class YazanApiClient {
         'scope': scope.wire,
         'device_id': deviceId,
         if (deviceName != null) 'device_name': deviceName,
-        'platform': platform,
+        if (_knownPlatform(platform)) 'platform': platform,
       },
       auth: false,
     );
     return _loginResult(body);
   }
+
+  /// Finishes a sign-in (or a new account) made on the website's own sign-in page
+  /// (`POST /auth/exchange`).
+  ///
+  /// The app opened `/yazan-auth/app/start` in the phone's auth browser with a PKCE challenge; the
+  /// site sent a one-time [code] back to the app's custom scheme. This swaps that code, with the
+  /// [codeVerifier] the challenge was made from, for the same session pair and `user` payload as
+  /// [login], stored the same way. Sent without a bearer.
+  ///
+  /// * Both apps: `client` is this client's scope (`store` / `admin`), the same id the start page
+  ///   was opened with; an admin code gives an admin-scope session (the dashboard login, second
+  ///   factor included, happened on the website).
+  /// * [platform] is sent only when it is `android` or `ios`.
+  /// * A code that is unknown, used, expired or does not match the verifier is a 400
+  ///   `yazan_mobile_bad_code`.
+  /// * The flow around it (PKCE, state, the browser) is `WebSignIn`.
+  Future<LoginResult> exchangeAppCode({
+    required String code,
+    required String codeVerifier,
+    String? deviceName,
+    String? platform,
+  }) async {
+    final body = await _send<Map<String, dynamic>>(
+      'POST',
+      '$_ns/auth/exchange',
+      data: {
+        'client': scope.wire,
+        'code': code,
+        'code_verifier': codeVerifier,
+        'device_id': deviceId,
+        if (deviceName != null) 'device_name': deviceName,
+        if (_knownPlatform(platform)) 'platform': platform,
+      },
+      auth: false,
+    );
+    return _loginResult(body);
+  }
+
+  /// The only `platform` values the sign-in routes accept.
+  static bool _knownPlatform(String? platform) => platform == 'android' || platform == 'ios';
 
   /// Sign in with an OpenID Connect ID token from the phone's Google or Apple SDK
   /// (`POST /auth/social`). Same session pair and `user` payload as [login], stored the same way.
@@ -134,7 +179,7 @@ class YazanApiClient {
         'scope': scope.wire,
         'device_id': deviceId,
         if (deviceName != null) 'device_name': deviceName,
-        if (platform == 'android' || platform == 'ios') 'platform': platform,
+        if (_knownPlatform(platform)) 'platform': platform,
         if (nonce != null && nonce.isNotEmpty) 'nonce': nonce,
         if (firstName != null && firstName.isNotEmpty) 'first_name': firstName,
         if (lastName != null && lastName.isNotEmpty) 'last_name': lastName,

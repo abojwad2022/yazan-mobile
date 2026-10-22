@@ -6,6 +6,8 @@ environment:
   sdk: ^3.6.0
 dependencies:
   dio: ^5.7.0
+  # sha256 for the PKCE challenge of the website sign-in (lib/src/web_sign_in.dart).
+  crypto: ^3.0.6
   yazan_domain:
 dev_dependencies:
   test: ^1.25.0

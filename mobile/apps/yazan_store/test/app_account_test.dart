@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:yazan_api_client/yazan_api_client.dart';
@@ -34,6 +37,9 @@ Future<void> _pump(
 /// A guest reaches the (optional) sign-in form through the Account entry in the app bar.
 Future<void> _openSignIn(WidgetTester tester) async {
   await tester.tap(find.byTooltip('Account'));
+  await tester.pumpAndSettle();
+  // The website sign-in leads; the in-app email form opens under it.
+  await tester.tap(find.text('Sign in with email here'));
   await tester.pumpAndSettle();
 }
 
@@ -76,10 +82,41 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('This is not available in the app.'), findsOneWidget);
 
+      // An answer the screen has no message for: generic text plus the code, for the owner to report.
       client.loginError = const ApiError(status: 500, code: 'boom');
       await tester.tap(find.widgetWithText(FilledButton, 'Sign in'));
       await tester.pumpAndSettle();
-      expect(find.text('Something went wrong. Check your connection and try again.'), findsOneWidget);
+      expect(find.text('Something went wrong. Please try again.'), findsOneWidget);
+      expect(find.text('(code: boom, 500)'), findsOneWidget);
+
+      // The route missing on the server: the website is not updated for the app yet (no code shown).
+      client.loginError = const ApiError(status: 404, code: 'rest_no_route');
+      await tester.tap(find.widgetWithText(FilledButton, 'Sign in'));
+      await tester.pumpAndSettle();
+      expect(find.text('The website is not updated for the app yet. Please try again later.'),
+          findsOneWidget);
+      expect(find.byKey(const ValueKey('sign-in-error-code')), findsNothing);
+    });
+
+    testWidgets('no connection and a timeout get the connection message', (tester) async {
+      final tokens = MemoryTokenStore();
+      final client = ScriptedClient(tokens)
+        ..loginException = DioException(
+            requestOptions: RequestOptions(path: '/x'), type: DioExceptionType.connectionError);
+      await _pump(tester, client: client, tokens: tokens, wishlist: FakeWishlistApi());
+
+      await _openSignIn(tester);
+      await _signInAs(tester, 'noor@yazan.test');
+      expect(find.text('Could not reach the website. Check your connection and try again.'),
+          findsOneWidget);
+      expect(find.byKey(const ValueKey('sign-in-error-code')), findsNothing);
+
+      client.loginException = TimeoutException('slow');
+      await tester.tap(find.widgetWithText(FilledButton, 'Sign in'));
+      await tester.pumpAndSettle();
+      expect(find.text('Could not reach the website. Check your connection and try again.'),
+          findsOneWidget);
+      expect(await tokens.read(), isNull);
     });
 
     testWidgets('a good sign-in returns to the shop, loads the favourites and opens the account next time',

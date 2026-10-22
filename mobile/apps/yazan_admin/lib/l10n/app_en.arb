@@ -855,5 +855,13 @@
   "refundChanged": "This order changed since you opened it, so nothing was refunded. Check the amounts and start the refund again.",
   "refundNoPermission": "You do not have permission to refund this order.",
   "refundFailed": "The refund could not be made.",
-  "refundDiscard": "Discard"
+  "refundDiscard": "Discard",
+  "webSignIn": "Sign in with the website (dashboard login)",
+  "webSignInHint": "Opens the YAZAN dashboard sign-in in a secure window: your password and second step, exactly as on the website.",
+  "signInHereInstead": "Or sign in here",
+  "webSignInExpired": "Sign-in expired, please try again.",
+  "webSignInFailed": "Sign-in did not finish. Please try again.",
+  "websiteNotUpdated": "The website is not updated for the app yet. Please try again later.",
+  "signInConnection": "Could not reach the website. Check your connection and try again.",
+  "signInUnexpected": "Something went wrong. Please try again."
 }

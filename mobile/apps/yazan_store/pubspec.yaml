@@ -16,6 +16,11 @@ dependencies:
   # QR / barcode camera for the ring check (lib/src/verify/mobile_serial_scanner.dart is written
   # against the 5.x API; check that file before moving to 6.x or later).
   mobile_scanner: ^5.2.3
+  # "Sign in or create account" on the website (lib/src/web_sign_in/web_sign_in.dart; the flow itself
+  # is WebSignIn in yazan_api_client): Custom Tabs on Android, ASWebAuthenticationSession on iOS.
+  # 5.x is the stable line (Dart >=3.5, Flutter >=3.24); 6.x (still alpha) is the one for AGP 9 /
+  # built-in Kotlin. Its Android CallbackActivity is added by mobile/tools/scaffold_platforms.sh.
+  flutter_web_auth_2: ^5.1.0
   yazan_domain:
   yazan_api_client:
   yazan_design_system:
@@ -24,6 +29,7 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  dio: ^5.7.0
   flutter_lints: ^5.0.0
   flutter_launcher_icons: ^0.14.4
 flutter:

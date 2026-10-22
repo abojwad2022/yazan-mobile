@@ -195,7 +195,8 @@ void main() {
       expect(find.text(message), findsNothing);
       await tester.tap(find.byTooltip('Account'));
       await tester.pumpAndSettle();
-      await tester.pageBack();
+      // A guest gets the sign-in sheet, which closes with its close button (no back arrow).
+      await tester.tap(find.byType(CloseButton));
       await tester.pumpAndSettle();
       expect(find.text(message), findsNothing);
     });
